@@ -1,57 +1,39 @@
-'use client';
+"use client";
 
 import React, { useState, useEffect } from 'react';
-import { Sidebar } from '@/components/Sidebar';
-import { TopBar } from '@/components/TopBar';
-import { MarketplaceView } from '@/components/views/MarketplaceView';
-import { SimulatorView } from '@/components/views/SimulatorView';
-import { CollectionView } from '@/components/views/CollectionView';
-import { ProfileView } from '@/components/views/ProfileView';
-import { AuthView } from '@/components/AuthView';
+import { Layout } from '@/components/Layout';
+import { Dashboard } from '@/components/Dashboard';
+import { Collection } from '@/components/Collection';
+import { PackOpener } from '@/components/PackOpener';
+import { Store } from '@/components/Store';
 import { UserProfile, Card, Pack } from '@/lib/types';
-import { AnimatePresence, motion } from 'motion/react';
 
 export default function Home() {
-  const [view, setView] = useState<'marketplace' | 'simulator' | 'collection' | 'profile'>('marketplace');
+  const [view, setView] = useState<'dashboard' | 'collection' | 'packs' | 'store'>('dashboard');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [collection, setCollection] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = React.useCallback(async () => {
     try {
-      // First, ensure session
-      const meRes = await fetch('/api/auth/me');
-      const meData = await meRes.json();
-
-      if (!meData.user) {
-        setLoading(false);
-        setUser(null);
-        return;
-      }
-
-      // If logged in, grab data
-      const [collRes] = await Promise.all([
+      const [userRes, collRes] = await Promise.all([
+        fetch('/api/user'),
         fetch('/api/collection')
       ]);
-
-      setUser(meData.user);
+      setUser(await userRes.json());
       setCollection(await collRes.json());
       setLoading(false);
     } catch (err) {
       console.error(err);
-      setLoading(false);
     }
   }, []);
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    setUser(null);
-    setView('marketplace');
-  };
+  const fetchUser = React.useCallback(async () => {
+    const res = await fetch('/api/user');
+    setUser(await res.json());
+  }, []);
 
   useEffect(() => {
-    // Run DB init once in background (hidden from user)
-    fetch('/api/init-db').catch(() => { });
     fetchData();
   }, [fetchData]);
 
@@ -62,10 +44,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ packId: pack.id, price: pack.price })
       });
-      if (res.ok) {
-        const userData = await res.json();
-        if (userData.user) setUser(userData.user);
-      }
+      if (res.ok) fetchUser();
     } catch (err) {
       console.error(err);
     }
@@ -80,7 +59,7 @@ export default function Home() {
       });
       const data = await res.json();
       if (data.cards) {
-        fetchData(); // Refresh both user balance/inv and collection
+        fetchData();
         return data.cards;
       }
     } catch (err) {
@@ -89,59 +68,28 @@ export default function Home() {
     return null;
   };
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#080808] overflow-hidden relative">
+        {/* Loading Animated Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-red-600/10 blur-[120px] rounded-full animate-pulse" />
+        </div>
+
         <div className="flex flex-col items-center space-y-4 relative z-10">
           <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-          <p className="font-bold text-[10px] uppercase tracking-widest text-zinc-500">Cargando el club...</p>
+          <p className="font-bold text-[10px] uppercase tracking-widest text-zinc-500">Initializing Street Games...</p>
         </div>
       </div>
     );
   }
 
-  if (!user) {
-    return <AuthView onLogin={(user) => { setUser(user); fetchData(); }} />;
-  }
-
   return (
-    <div className="flex h-screen bg-[#080808] text-white overflow-hidden font-sans selection:bg-red-600/20 relative">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{
-            x: [0, 400, 0],
-            y: [0, 200, 0],
-            scale: [1, 1.5, 1],
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-red-600/10 blur-[150px] rounded-full"
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(8,8,8,0.4)_100%)]" />
-      </div>
-
-      <Sidebar view={view} setView={setView} username={user.username} onLogout={handleLogout} />
-
-      <div className="flex-1 flex flex-col min-w-0 relative z-10">
-        <TopBar view={view} balance={user.balance} />
-
-        <div className="flex-1 overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={view}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="h-full"
-            >
-              {view === 'marketplace' && <MarketplaceView onBuy={handleBuy} balance={user.balance} />}
-              {view === 'simulator' && <SimulatorView user={user} onOpen={handleOpen} />}
-              {view === 'collection' && <CollectionView collection={collection} />}
-              {view === 'profile' && <ProfileView user={user} collectionCount={collection.length} />}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
-    </div>
+    <Layout activeTab={view} setActiveTab={setView} username={user.username} balance={user.balance}>
+      {view === 'dashboard' && <Dashboard onNavigate={setView} />}
+      {view === 'collection' && <Collection collection={collection} />}
+      {view === 'packs' && <PackOpener user={user} onOpen={handleOpen} />}
+      {view === 'store' && <Store onBuy={handleBuy} balance={user.balance} />}
+    </Layout>
   );
 }
