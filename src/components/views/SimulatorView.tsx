@@ -56,7 +56,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({ user, onOpen }) =>
                             >
                                 <div className="absolute inset-0 bg-gradient-to-br from-red-600/20 to-transparent" />
                                 <Sparkles size={48} className="text-red-500 animate-pulse relative z-10" />
-                                <p className="mt-4 font-black text-[10px] uppercase tracking-[0.2em] text-red-500 relative z-10 animate-pulse">Syncing Nexus...</p>
+                                <p className="mt-4 font-black text-[10px] uppercase tracking-[0.2em] text-red-500 relative z-10 animate-pulse">Abriendo sobre...</p>
                             </motion.div>
                         </motion.div>
                     ) : openedCards.length > 0 ? (
@@ -97,9 +97,9 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({ user, onOpen }) =>
                             <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/5 shadow-inner">
                                 <Sparkles size={32} className="text-red-500/20" />
                             </div>
-                            <h3 className="text-xl font-black text-white tracking-widest mb-2 uppercase">Nexus Standby</h3>
+                            <h3 className="text-xl font-black text-white tracking-widest mb-2 uppercase">Preparado para abrir</h3>
                             <p className="text-zinc-600 text-[10px] uppercase font-bold tracking-[0.2em]">
-                                Awaiting Authentication Signal
+                                Elige un sobre para empezar
                             </p>
                         </motion.div>
                     )}
@@ -107,9 +107,9 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({ user, onOpen }) =>
             </main>
 
             <aside className="w-80 border-l border-white/5 bg-black/40 backdrop-blur-xl flex flex-col overflow-y-auto p-6 relative z-10">
-                <ControlSection title="Encrypted Buffer">
+                <ControlSection title="Tus Sobres">
                     <div className="space-y-2">
-                        {user.inventory.map((item) => (
+                        {(user.inventory || []).map((item) => (
                             <button
                                 key={item.packId}
                                 onClick={() => setSelectedPackId(item.packId)}
@@ -121,7 +121,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({ user, onOpen }) =>
                                 <div className="flex items-center space-x-3 relative z-10">
                                     <Package size={14} className={selectedPackId === item.packId ? 'text-red-500' : 'text-zinc-600'} />
                                     <span className={`text-[10px] font-black uppercase tracking-widest ${selectedPackId === item.packId ? 'text-white' : 'text-zinc-500'}`}>
-                                        {item.packId.includes('p') ? 'Pokemon' : item.packId.includes('y') ? 'Yu-Gi-Oh' : 'Magic'} Node
+                                        {item.name || 'Unidentified Node'}
                                     </span>
                                 </div>
                                 <span className={`text-[10px] font-black relative z-10 ${selectedPackId === item.packId ? 'text-red-500' : 'text-zinc-700'}`}>
@@ -129,7 +129,7 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({ user, onOpen }) =>
                                 </span>
                             </button>
                         ))}
-                        {user.inventory.length === 0 && (
+                        {(!user.inventory || user.inventory.length === 0) && (
                             <div className="py-8 text-center border border-dashed border-white/5 rounded-2xl">
                                 <p className="text-[9px] text-zinc-700 uppercase tracking-[0.2em] font-black">Empty Vault</p>
                             </div>
@@ -143,11 +143,11 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({ user, onOpen }) =>
                         disabled={opening || !selectedPackId || !user.inventory.find(i => i.packId === selectedPackId)?.count}
                         className="w-full py-4 bg-red-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(220,38,38,0.2)] hover:bg-red-700 transition-all disabled:opacity-20 disabled:grayscale group relative overflow-hidden"
                     >
-                        <span className="relative z-10">Initialize Sequence</span>
+                        <span className="relative z-10">Abrir sobre ahora</span>
                         <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                     <p className="text-[8px] text-center mt-4 text-zinc-600 uppercase tracking-widest font-bold">
-                        Bypass Protocol V4.2
+                        ¡Mucha suerte con tus cartas!
                     </p>
                 </div>
             </aside>

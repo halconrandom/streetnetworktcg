@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Package, ChevronRight, ChevronDown } from 'lucide-react';
+import { Package, ChevronRight, Loader2 } from 'lucide-react';
 import { Pack } from '@/lib/types';
-import { MOCK_PACKS } from '@/lib/mockData';
 import { ControlSection, InputField } from '../UI';
 
 interface MarketplaceViewProps {
@@ -13,7 +12,35 @@ interface MarketplaceViewProps {
 }
 
 export const MarketplaceView: React.FC<MarketplaceViewProps> = ({ onBuy, balance }) => {
-    const [selectedPack, setSelectedPack] = useState<Pack>(MOCK_PACKS[0]);
+    const [packs, setPacks] = useState<Pack[]>([]);
+    const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchPacks = async () => {
+            try {
+                const res = await fetch('/api/packs');
+                const data = await res.json();
+                setPacks(data);
+                if (data.length > 0) setSelectedPack(data[0]);
+                setLoading(false);
+            } catch (err) {
+                console.error(err);
+                setLoading(false);
+            }
+        };
+        fetchPacks();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-red-600 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!selectedPack) return null;
 
     return (
         <div className="flex h-full">
@@ -28,20 +55,20 @@ export const MarketplaceView: React.FC<MarketplaceViewProps> = ({ onBuy, balance
                         <div className="absolute inset-0 bg-red-600/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
                         <Package size={80} className="text-white/10 group-hover:text-red-500/20 transition-colors duration-500" />
                         <div className="mt-4 text-white/20 font-bold uppercase tracking-widest text-[10px] group-hover:text-red-500/40 transition-colors">
-                            {selectedPack.game} Protocol
+                            Cartas de {selectedPack.game}
                         </div>
                     </div>
                     <h2 className="text-3xl font-black tracking-tight text-white mb-2 uppercase">{selectedPack.name}</h2>
                     <p className="text-red-500/60 uppercase tracking-widest text-[9px] font-black">
-                        Nexus Authentication Required
+                        ¡Consigue tu sobre ahora!
                     </p>
                 </motion.div>
             </div>
 
             <aside className="w-80 border-l border-white/5 bg-black/40 backdrop-blur-xl flex flex-col overflow-y-auto p-6 relative z-10">
-                <ControlSection title="Interface Nodes">
+                <ControlSection title="Sobres Disponibles">
                     <div className="space-y-2">
-                        {MOCK_PACKS.map((pack) => (
+                        {packs.map((pack) => (
                             <button
                                 key={pack.id}
                                 onClick={() => setSelectedPack(pack)}
@@ -60,9 +87,9 @@ export const MarketplaceView: React.FC<MarketplaceViewProps> = ({ onBuy, balance
                     </div>
                 </ControlSection>
 
-                <ControlSection title="Data Stream">
-                    <InputField label="Credits Required" value={selectedPack.price} />
-                    <InputField label="Source Network" value={selectedPack.game} />
+                <ControlSection title="Detalles del sobre">
+                    <InputField label="Precio del sobre" value={selectedPack.price} />
+                    <InputField label="Juego" value={selectedPack.game} />
                 </ControlSection>
 
                 <div className="mt-auto pt-6 border-t border-white/5">
@@ -71,11 +98,11 @@ export const MarketplaceView: React.FC<MarketplaceViewProps> = ({ onBuy, balance
                         disabled={balance < selectedPack.price}
                         className="w-full py-4 bg-red-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(220,38,38,0.3)] hover:bg-red-700 transition-all disabled:opacity-30 disabled:grayscale group relative overflow-hidden"
                     >
-                        <span className="relative z-10">Initialize Acquisition</span>
+                        <span className="relative z-10">Comprar este sobre</span>
                         <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                     <p className="text-[8px] text-center mt-4 text-zinc-600 uppercase tracking-widest font-bold">
-                        Secure Transmission Encrypted
+                        Compra segura y protegida
                     </p>
                 </div>
             </aside>

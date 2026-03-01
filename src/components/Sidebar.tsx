@@ -6,9 +6,10 @@ interface SidebarProps {
     view: string;
     setView: (view: any) => void;
     username: string;
+    onLogout: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ view, setView, username }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ view, setView, username, onLogout }) => {
     const menuItems = [
         { id: 'marketplace', label: 'Gallery', icon: ShoppingBag },
         { id: 'simulator', label: 'Pack Opener', icon: Package },
@@ -23,8 +24,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, setView, username }) => 
                     <Sparkles size={18} className="text-white" />
                 </div>
                 <div>
-                    <h1 className="text-sm font-black tracking-tight uppercase leading-none text-white">TCG Nexus</h1>
-                    <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mt-1">Collectors Hub</p>
+                    <h1 className="text-sm font-black tracking-tight uppercase leading-none text-white">Street TCG</h1>
+                    <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mt-1">Club de Coleccionistas</p>
                 </div>
             </div>
 
@@ -63,13 +64,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ view, setView, username }) => 
                         <p className="text-[11px] font-bold truncate uppercase text-white">{username}</p>
                         <div className="flex items-center space-x-1.5 mt-0.5">
                             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                            <p className="text-[8px] text-red-500/80 font-black uppercase tracking-widest">Nexus Link Active</p>
+                            <p className="text-[8px] text-red-500/80 font-black uppercase tracking-widest">En línea</p>
                         </div>
                     </div>
                 </div>
-                <button className="w-full flex items-center space-x-3 px-4 py-2.5 text-zinc-600 hover:text-red-400 hover:bg-red-950/20 rounded-xl transition-all text-[10px] font-bold uppercase tracking-widest">
+                <button
+                    onClick={onLogout}
+                    className="w-full flex items-center space-x-3 px-4 py-2.5 text-zinc-600 hover:text-red-400 hover:bg-red-950/20 rounded-xl transition-all text-[10px] font-bold uppercase tracking-widest"
+                >
                     <LogOut size={14} />
-                    <span>Terminate Session</span>
+                    <span>Cerrar sesión</span>
                 </button>
             </div>
         </aside>

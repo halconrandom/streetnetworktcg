@@ -7,6 +7,7 @@ import { MarketplaceView } from '@/components/views/MarketplaceView';
 import { SimulatorView } from '@/components/views/SimulatorView';
 import { CollectionView } from '@/components/views/CollectionView';
 import { ProfileView } from '@/components/views/ProfileView';
+import { AuthView } from '@/components/AuthView';
 import { UserProfile, Card, Pack } from '@/lib/types';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -18,24 +19,39 @@ export default function Home() {
 
   const fetchData = React.useCallback(async () => {
     try {
-      const [userRes, collRes] = await Promise.all([
-        fetch('/api/user'),
+      // First, ensure session
+      const meRes = await fetch('/api/auth/me');
+      const meData = await meRes.json();
+
+      if (!meData.user) {
+        setLoading(false);
+        setUser(null);
+        return;
+      }
+
+      // If logged in, grab data
+      const [collRes] = await Promise.all([
         fetch('/api/collection')
       ]);
-      setUser(await userRes.json());
+
+      setUser(meData.user);
       setCollection(await collRes.json());
       setLoading(false);
     } catch (err) {
       console.error(err);
+      setLoading(false);
     }
   }, []);
 
-  const fetchUser = React.useCallback(async () => {
-    const res = await fetch('/api/user');
-    setUser(await res.json());
-  }, []);
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    setUser(null);
+    setView('marketplace');
+  };
 
   useEffect(() => {
+    // Run DB init once in background (hidden from user)
+    fetch('/api/init-db').catch(() => { });
     fetchData();
   }, [fetchData]);
 
@@ -46,7 +62,10 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ packId: pack.id, price: pack.price })
       });
-      if (res.ok) fetchUser(); // Faster just to grab user
+      if (res.ok) {
+        const userData = await res.json();
+        if (userData.user) setUser(userData.user);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -70,33 +89,23 @@ export default function Home() {
     return null;
   };
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#080808] overflow-hidden relative">
-        {/* Loading Animated Background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              x: [0, 100, 0],
-              y: [0, 50, 0],
-            }}
-            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-red-600/10 blur-[120px] rounded-full"
-          />
-        </div>
-
         <div className="flex flex-col items-center space-y-4 relative z-10">
           <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-          <p className="font-bold text-[10px] uppercase tracking-widest text-zinc-500">Initializing Nexus...</p>
+          <p className="font-bold text-[10px] uppercase tracking-widest text-zinc-500">Cargando el club...</p>
         </div>
       </div>
     );
   }
 
+  if (!user) {
+    return <AuthView onLogin={(user) => { setUser(user); fetchData(); }} />;
+  }
+
   return (
     <div className="flex h-screen bg-[#080808] text-white overflow-hidden font-sans selection:bg-red-600/20 relative">
-      {/* Dynamic Animated Background Layers */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           animate={{
@@ -107,19 +116,10 @@ export default function Home() {
           transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
           className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-red-600/10 blur-[150px] rounded-full"
         />
-        <motion.div
-          animate={{
-            x: [0, -300, 0],
-            y: [0, 400, 0],
-            scale: [1, 1.3, 1],
-          }}
-          transition={{ duration: 30, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute bottom-[-10%] right-[-10%] w-[35%] h-[35%] bg-amber-500/5 blur-[130px] rounded-full"
-        />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(8,8,8,0.4)_100%)]" />
       </div>
 
-      <Sidebar view={view} setView={setView} username={user.username} />
+      <Sidebar view={view} setView={setView} username={user.username} onLogout={handleLogout} />
 
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
         <TopBar view={view} balance={user.balance} />

@@ -21,12 +21,12 @@ export interface Pack {
 export interface InventoryItem {
     packId: string;
     count: number;
+    name?: string;
 }
 
 export interface UserProfile {
     id: string;
     username: string;
-    avatar: string | null;
     balance: number;
-    inventory: InventoryItem[];
+    inventory: InventoryItem[]; // This is for unopened packs in the Simulator
 }

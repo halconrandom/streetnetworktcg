@@ -25,16 +25,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, collectionCount 
                             <h3 className="text-3xl font-black uppercase tracking-tight text-white mb-1">{user.username}</h3>
                             <div className="flex items-center space-x-2">
                                 <div className="w-2 h-2 rounded-full bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.5)]" />
-                                <p className="text-red-500 font-black uppercase text-[10px] tracking-[0.3em]">Verified Collective</p>
+                                <p className="text-red-500 font-black uppercase text-[10px] tracking-[0.3em]">Miembro del Club</p>
                             </div>
 
                             <div className="flex space-x-10 mt-8 border-t border-white/5 pt-6">
                                 <div className="text-left">
-                                    <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Asset Credits</p>
+                                    <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Tus Monedas</p>
                                     <p className="text-2xl font-black text-white">{user.balance}</p>
                                 </div>
                                 <div className="text-left">
-                                    <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Data Bindings</p>
+                                    <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-1.5">Total de Cartas</p>
                                     <p className="text-2xl font-black text-white">{collectionCount}</p>
                                 </div>
                             </div>
@@ -44,14 +44,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, collectionCount 
             </main>
 
             <aside className="w-85 border-l border-white/5 bg-black/40 backdrop-blur-xl flex flex-col overflow-y-auto p-8 relative z-20">
-                <ControlSection title="Privacy Protocols">
+                <ControlSection title="Ajustes de Cuenta">
                     <div className="space-y-3">
                         <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-white/10 hover:border-red-600/30 transition-all group">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">Security Node</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">Seguridad</span>
                             <ChevronRight size={16} className="text-white/20 group-hover:text-red-500 transition-colors" />
                         </div>
                         <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-white/10 hover:border-red-600/30 transition-all group">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">Interface Prefs</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">Preferencias</span>
                             <ChevronRight size={16} className="text-white/20 group-hover:text-red-500 transition-colors" />
                         </div>
                     </div>
