@@ -4,10 +4,12 @@ import { ReactNode } from "react";
 import { TopNav } from "./TopNav";
 import { motion, AnimatePresence } from "motion/react";
 
+type ViewType = 'dashboard' | 'collection' | 'packs' | 'store';
+
 interface LayoutProps {
   children: ReactNode;
-  activeTab: string;
-  setActiveTab: (id: string) => void;
+  activeTab: ViewType;
+  setActiveTab: (id: ViewType) => void;
   username?: string;
   balance?: number;
 }

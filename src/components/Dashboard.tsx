@@ -6,8 +6,10 @@ import { Badge } from "./ui/Badge";
 import { Play, TrendingUp, Package, Sparkles, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 
+type ViewType = 'dashboard' | 'collection' | 'packs' | 'store';
+
 interface DashboardProps {
-  onNavigate?: (tab: string) => void;
+  onNavigate?: (tab: ViewType) => void;
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {

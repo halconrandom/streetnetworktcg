@@ -4,7 +4,9 @@ import { motion } from "motion/react";
 import { Gamepad2, Library, PackageOpen, Store, User, Search, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+type ViewType = 'dashboard' | 'collection' | 'packs' | 'store';
+
+const navItems: { id: ViewType; label: string; icon: typeof Gamepad2 }[] = [
   { id: "dashboard", label: "Dashboard", icon: Gamepad2 },
   { id: "collection", label: "Collection", icon: Library },
   { id: "packs", label: "Open Packs", icon: PackageOpen },
@@ -12,8 +14,8 @@ const navItems = [
 ];
 
 interface TopNavProps {
-  activeTab: string;
-  setActiveTab: (id: string) => void;
+  activeTab: ViewType;
+  setActiveTab: (id: ViewType) => void;
   username?: string;
   balance?: number;
 }
