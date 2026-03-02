@@ -27,6 +27,7 @@ export interface InventoryItem {
 export interface UserProfile {
     id: string;
     username: string;
+    avatar: string | null;
     balance: number;
     inventory: InventoryItem[]; // This is for unopened packs in the Simulator
 }

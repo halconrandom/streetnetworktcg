@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClient } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { MOCK_CARDS, MOCK_USER } from '@/lib/mockData';
+
+// Check if we're in development mode without DB
+const USE_MOCK = process.env.NODE_ENV === 'development' || !process.env.DB_HOST;
 
 export async function POST(req: NextRequest) {
+    if (USE_MOCK) {
+        const { packId } = await req.json();
+        
+        // Simulate opening a pack - return random cards
+        const shuffled = [...MOCK_CARDS].sort(() => Math.random() - 0.5);
+        const openedCards = shuffled.slice(0, 5);
+
+        return NextResponse.json({ cards: openedCards });
+    }
+
     try {
         const session: any = await getSession();
         if (!session) {
