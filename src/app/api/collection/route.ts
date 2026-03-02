@@ -1,21 +1,26 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { query } from '@/lib/db';
-import { getSession } from '@/lib/auth';
-import { MOCK_COLLECTION } from '@/lib/mockData';
-
-// Check if we're in development mode without DB
-const USE_MOCK = process.env.NODE_ENV === 'development' || !process.env.DB_HOST;
 
 export async function GET() {
-    if (USE_MOCK) {
-        return NextResponse.json(MOCK_COLLECTION);
-    }
-
     try {
-        const session: any = await getSession();
-        if (!session) {
-            return NextResponse.json(MOCK_COLLECTION);
+        const { userId } = await auth();
+        
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+
+        // Get user's database ID
+        const userResult = await query(
+            'SELECT id FROM sn_tcg_users WHERE clerk_id = $1',
+            [userId]
+        );
+
+        if (userResult.rows.length === 0) {
+            return NextResponse.json([]);
+        }
+
+        const dbUserId = userResult.rows[0].id;
 
         const result = await query(`
             SELECT 
@@ -24,16 +29,17 @@ export async function GET() {
                 c.type, 
                 c.rarity, 
                 c.image_url as "imageUrl", 
-                c.game
-            FROM sg_tcg_inventory i
-            JOIN sg_tcg_cards c ON i.card_id = c.id
+                c.game,
+                i.quantity
+            FROM sn_tcg_inventory i
+            JOIN sn_tcg_cards c ON i.card_id = c.id
             WHERE i.user_id = $1
             ORDER BY i.acquired_at DESC
-        `, [session.id]);
+        `, [dbUserId]);
 
-        return NextResponse.json(result.rows.length > 0 ? result.rows : MOCK_COLLECTION);
-    } catch (err: any) {
+        return NextResponse.json(result.rows);
+    } catch (err: unknown) {
         console.error(err);
-        return NextResponse.json(MOCK_COLLECTION);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

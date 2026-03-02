@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { ButtonHTMLAttributes, forwardRef } from "react";
+import { forwardRef } from "react";
 import { motion, HTMLMotionProps } from "motion/react";
 
 export interface ButtonProps extends Omit<HTMLMotionProps<"button">, "ref"> {

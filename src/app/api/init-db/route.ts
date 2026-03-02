@@ -5,36 +5,95 @@ export async function GET() {
     const results: string[] = [];
 
     try {
+        // Create Sets table
+        await query(`
+            CREATE TABLE IF NOT EXISTS sn_tcg_sets (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                name VARCHAR(255) NOT NULL,
+                game VARCHAR(50) NOT NULL CHECK (game IN ('Pokemon', 'Yu-Gi-Oh!', 'Magic')),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        results.push('sn_tcg_sets: OK');
+
+        // Create Cards table
+        await query(`
+            CREATE TABLE IF NOT EXISTS sn_tcg_cards (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                set_id UUID REFERENCES sn_tcg_sets(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                type VARCHAR(100),
+                rarity VARCHAR(100),
+                image_url TEXT,
+                game VARCHAR(50) NOT NULL CHECK (game IN ('Pokemon', 'Yu-Gi-Oh!', 'Magic')),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        results.push('sn_tcg_cards: OK');
+
+        // Create Packs table
+        await query(`
+            CREATE TABLE IF NOT EXISTS sn_tcg_packs (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                set_id UUID REFERENCES sn_tcg_sets(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                price INTEGER NOT NULL DEFAULT 0,
+                card_count INTEGER NOT NULL DEFAULT 5,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        results.push('sn_tcg_packs: OK');
+
+        // Create Users table (linked to Clerk)
+        await query(`
+            CREATE TABLE IF NOT EXISTS sn_tcg_users (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                clerk_id VARCHAR(255) UNIQUE NOT NULL,
+                username VARCHAR(100) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                balance DECIMAL(10, 2) DEFAULT 2500,
+                role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        results.push('sn_tcg_users: OK');
+
         // Create User Packs table
         await query(`
-            CREATE TABLE IF NOT EXISTS sg_tcg_user_packs (
+            CREATE TABLE IF NOT EXISTS sn_tcg_user_packs (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                user_id UUID REFERENCES sg_tcg_users(id) ON DELETE CASCADE,
-                pack_id UUID REFERENCES sg_tcg_packs(id) ON DELETE CASCADE,
+                user_id UUID REFERENCES sn_tcg_users(id) ON DELETE CASCADE,
+                pack_id UUID REFERENCES sn_tcg_packs(id) ON DELETE CASCADE,
                 count INTEGER DEFAULT 0 CHECK (count >= 0),
                 UNIQUE(user_id, pack_id)
             )
         `);
-        results.push('sg_tcg_user_packs: OK');
+        results.push('sn_tcg_user_packs: OK');
 
         // Create Inventory table
         await query(`
-            CREATE TABLE IF NOT EXISTS sg_tcg_inventory (
+            CREATE TABLE IF NOT EXISTS sn_tcg_inventory (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                user_id UUID REFERENCES sg_tcg_users(id) ON DELETE CASCADE,
-                card_id UUID REFERENCES sg_tcg_cards(id) ON DELETE CASCADE,
+                user_id UUID REFERENCES sn_tcg_users(id) ON DELETE CASCADE,
+                card_id UUID REFERENCES sn_tcg_cards(id) ON DELETE CASCADE,
                 quantity INTEGER DEFAULT 1 CHECK (quantity >= 0),
                 acquired_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(user_id, card_id)
             )
         `);
-        results.push('sg_tcg_inventory: OK');
+        results.push('sn_tcg_inventory: OK');
+
+        // Create indexes
+        await query(`CREATE INDEX IF NOT EXISTS idx_sn_tcg_users_clerk_id ON sn_tcg_users(clerk_id)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_sn_tcg_cards_set_id ON sn_tcg_cards(set_id)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_sn_tcg_inventory_user_id ON sn_tcg_inventory(user_id)`);
+        results.push('Indexes: OK');
 
         // Seed Sets if empty
-        const setsCount = await query('SELECT count(*)::int as cnt FROM sg_tcg_sets');
+        const setsCount = await query('SELECT count(*)::int as cnt FROM sn_tcg_sets');
         if (setsCount.rows[0].cnt === 0) {
             await query(`
-                INSERT INTO sg_tcg_sets (name, game) VALUES 
+                INSERT INTO sn_tcg_sets (name, game) VALUES 
                 ('Base Set', 'Pokemon'),
                 ('Legend of Blue Eyes', 'Yu-Gi-Oh!'),
                 ('Alpha Edition', 'Magic')
@@ -44,15 +103,15 @@ export async function GET() {
             results.push('Sets: already seeded');
         }
 
-        // Seed Cards if empty (note: requires game column -- added by migration.sql)
-        const cardsCount = await query('SELECT count(*)::int as cnt FROM sg_tcg_cards');
+        // Seed Cards if empty
+        const cardsCount = await query('SELECT count(*)::int as cnt FROM sn_tcg_cards');
         if (cardsCount.rows[0].cnt === 0) {
-            const sets = await query('SELECT id, name FROM sg_tcg_sets');
+            const sets = await query('SELECT id, name FROM sn_tcg_sets');
             const setIds: Record<string, string> = {};
             sets.rows.forEach(r => { setIds[r.name] = r.id; });
 
             await query(`
-                INSERT INTO sg_tcg_cards (set_id, name, type, rarity, image_url, game) VALUES 
+                INSERT INTO sn_tcg_cards (set_id, name, type, rarity, image_url, game) VALUES 
                 ($1, 'Charizard', 'Fire', 'Ultra Rare', 'https://images.pokemontcg.io/base1/4_hires.png', 'Pokemon'),
                 ($1, 'Blastoise', 'Water', 'Rare Holo', 'https://images.pokemontcg.io/base1/2_hires.png', 'Pokemon'),
                 ($1, 'Pikachu', 'Lightning', 'Common', 'https://images.pokemontcg.io/base1/58_hires.png', 'Pokemon'),
@@ -66,14 +125,14 @@ export async function GET() {
         }
 
         // Seed Packs if empty
-        const packsCount = await query('SELECT count(*)::int as cnt FROM sg_tcg_packs');
+        const packsCount = await query('SELECT count(*)::int as cnt FROM sn_tcg_packs');
         if (packsCount.rows[0].cnt === 0) {
-            const sets = await query('SELECT id, name FROM sg_tcg_sets');
+            const sets = await query('SELECT id, name FROM sn_tcg_sets');
             const setIds: Record<string, string> = {};
             sets.rows.forEach(r => { setIds[r.name] = r.id; });
 
             await query(`
-                INSERT INTO sg_tcg_packs (set_id, name, price, card_count) VALUES 
+                INSERT INTO sn_tcg_packs (set_id, name, price, card_count) VALUES 
                 ($1, 'Pokemon Base Set', 500, 5),
                 ($2, 'Legend of Blue Eyes', 400, 5),
                 ($3, 'MTG Alpha Edition', 1000, 5)
@@ -85,16 +144,15 @@ export async function GET() {
 
         return NextResponse.json({ success: true, results });
 
-    } catch (err: any) {
-        console.error('INIT-DB ERROR:', err.message, err.code);
+    } catch (err: unknown) {
+        const error = err as { message?: string; code?: string };
+        console.error('INIT-DB ERROR:', error.message, error.code);
         return NextResponse.json({
-            error: err.message,
-            code: err.code,
-            hint: err.code === '42501'
+            error: error.message || 'Unknown error',
+            code: error.code,
+            hint: error.code === '42501'
                 ? 'Ejecuta migration.sql en tu VPS como superusuario postgres'
-                : err.code === '42703'
-                    ? 'Columna no existe -- ejecuta migration.sql para añadirla'
-                    : 'Error inesperado de base de datos'
+                : 'Error inesperado de base de datos'
         }, { status: 500 });
     }
 }

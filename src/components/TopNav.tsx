@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Gamepad2, Library, PackageOpen, Store, User, Search, Bell } from "lucide-react";
+import { Gamepad2, Library, PackageOpen, Store, Search, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 
 type ViewType = 'dashboard' | 'collection' | 'packs' | 'store';
 
@@ -69,15 +70,42 @@ export function TopNav({ activeTab, setActiveTab, username = "Player", balance =
           <Bell className="h-5 w-5" />
           <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-600 ring-2 ring-[#080808]" />
         </button>
-        <div className="flex items-center gap-3 pl-2">
-          <div className="flex flex-col items-end">
-            <span className="text-sm font-semibold text-white">{username}</span>
-            <span className="text-xs font-medium text-amber-500">{balance.toLocaleString()} CR</span>
+
+        {/* Auth Section */}
+        <SignedOut>
+          <div className="flex items-center gap-2">
+            <SignInButton mode="modal">
+              <button className="h-10 px-4 rounded-full text-sm font-medium text-zinc-300 hover:text-white transition-colors">
+                Sign In
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button className="h-10 px-4 rounded-full bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20">
+                Sign Up
+              </button>
+            </SignUpButton>
           </div>
-          <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-red-700 text-white shadow-lg shadow-red-600/20">
-            <User className="h-5 w-5" />
-          </button>
-        </div>
+        </SignedOut>
+
+        <SignedIn>
+          <div className="flex items-center gap-3 pl-2">
+            <div className="flex flex-col items-end">
+              <span className="text-sm font-semibold text-white">{username}</span>
+              <span className="text-xs font-medium text-amber-500">{balance.toLocaleString()} CR</span>
+            </div>
+            <UserButton 
+              appearance={{
+                elements: {
+                  avatarBox: "h-10 w-10 rounded-full bg-gradient-to-br from-red-500 to-red-700 shadow-lg shadow-red-600/20",
+                  userButtonTrigger: "focus:shadow-none focus:ring-2 focus:ring-red-600",
+                  userButtonPopoverCard: "bg-[#0a0a0a] border border-white/10 rounded-2xl",
+                  userButtonPopoverActionButton: "text-zinc-300 hover:text-white hover:bg-white/5",
+                }
+              }}
+              afterSignOutUrl="/sign-in"
+            />
+          </div>
+        </SignedIn>
       </div>
     </nav>
   );
