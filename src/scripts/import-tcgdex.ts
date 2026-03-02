@@ -1,26 +1,20 @@
 /**
- * Pokemon TCG Import Script
+ * Pokemon TCG Import Script - TCGdex API
  * 
- * Fetches all sets and cards from the Pokemon TCG API
- * and imports them into the database.
+ * Uses TCGdex API (more reliable, no API key needed)
+ * https://tcgdex.dev/
  * 
- * Usage: npx tsx src/scripts/import-pokemon.ts
+ * Usage: npx tsx src/scripts/import-tcgdex.ts
  */
 
 import 'dotenv/config';
 import { Pool } from 'pg';
-import type { PokemonTcgSet, PokemonTcgCard, PokemonTcgApiResponse } from '../lib/types';
 
 // ============================================
 // CONFIGURATION
 // ============================================
 
-// Use TCGdex API as primary (more reliable)
 const API_BASE_URL = 'https://api.tcgdex.net/v2/en';
-const FALLBACK_API_URL = 'https://api.pokemontcg.io/v2';
-const API_KEY = process.env.POKEMON_TCG_API_KEY || '';
-const PAGE_SIZE = 250;
-
 const DB_CONFIG = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
@@ -29,8 +23,7 @@ const DB_CONFIG = {
   database: process.env.DB_NAME || 'SNCardDB',
 };
 
-// Rate limiting
-const REQUEST_DELAY_MS = API_KEY ? 100 : 300; // Faster with API key
+const REQUEST_DELAY_MS = 200;
 
 // ============================================
 // DATABASE CONNECTION
@@ -46,26 +39,49 @@ async function query(text: string, params?: unknown[]) {
 // API FETCHING
 // ============================================
 
+interface TCGdexSet {
+  id: string;
+  name: string;
+  cardCount: { total: number; official: number };
+  releaseDate: string;
+  serie: { id: string; name: string };
+  logo?: string;
+  symbol?: string;
+}
+
+interface TCGdexCard {
+  id: string;
+  name: string;
+  types?: string[];
+  hp?: number;
+  rarity?: string;
+  image?: string;
+  category: string;
+  variants?: Record<string, boolean>;
+  illustrator?: string;
+  attacks?: Array<{ name: string; damage: string; cost?: string[] }>;
+  abilities?: Array<{ name: string; effect: string }>;
+  weaknesses?: Array<{ type: string; value?: string }>;
+  resistances?: Array<{ type: string; value?: string }>;
+  retreat?: number;
+  evolvesFrom?: string;
+  pokedexId?: number;
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
   for (let i = 0; i < retries; i++) {
     try {
-      // Add API key as query parameter if available
-      const urlWithKey = API_KEY 
-        ? `${url}${url.includes('?') ? '&' : '?'}api_key=${API_KEY}`
-        : url;
-      
-      const headers: Record<string, string> = {
-        'Accept': 'application/json',
-      };
-      
-      const response = await fetch(urlWithKey, { headers });
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' }
+      });
       
       if (response.status === 429) {
-        // Rate limited - wait and retry
-        const retryAfter = response.headers.get('Retry-After');
-        const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
-        console.log(`Rate limited, waiting ${waitMs}ms...`);
-        await sleep(waitMs);
+        console.log('Rate limited, waiting 5s...');
+        await sleep(5000);
         continue;
       }
       
@@ -80,49 +96,33 @@ async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
       await sleep(1000);
     }
   }
-  
   throw new Error('Max retries exceeded');
 }
 
-async function fetchAllSets(): Promise<PokemonTcgSet[]> {
-  console.log('Fetching all sets...');
+async function fetchAllSets(): Promise<TCGdexSet[]> {
+  console.log('Fetching all sets from TCGdex...');
   
-  const url = `${API_BASE_URL}/sets?orderBy=releaseDate:desc&pageSize=100`;
+  const url = `${API_BASE_URL}/sets`;
   const response = await fetchWithRetry(url);
-  const data: PokemonTcgApiResponse<PokemonTcgSet> = await response.json();
+  const sets: TCGdexSet[] = await response.json();
   
-  console.log(`Found ${data.totalCount} sets`);
-  return data.data;
+  console.log(`Found ${sets.length} sets`);
+  return sets;
 }
 
-async function fetchCardsBySet(setId: string): Promise<PokemonTcgCard[]> {
-  const allCards: PokemonTcgCard[] = [];
-  let page = 1;
-  let hasMore = true;
+async function fetchCardsBySet(setId: string): Promise<TCGdexCard[]> {
+  const url = `${API_BASE_URL}/sets/${setId}`;
+  const response = await fetchWithRetry(url);
+  const data = await response.json();
   
-  while (hasMore) {
-    const url = `${API_BASE_URL}/cards?q=set.id:${setId}&page=${page}&pageSize=${PAGE_SIZE}`;
-    const response = await fetchWithRetry(url);
-    const data: PokemonTcgApiResponse<PokemonTcgCard> = await response.json();
-    
-    allCards.push(...data.data);
-    
-    console.log(`  Fetched page ${page}/${Math.ceil(data.totalCount / PAGE_SIZE)} (${data.data.length} cards)`);
-    
-    hasMore = data.count === PAGE_SIZE;
-    page++;
-    
-    await sleep(REQUEST_DELAY_MS);
-  }
-  
-  return allCards;
+  return data.cards || [];
 }
 
 // ============================================
 // DATABASE OPERATIONS
 // ============================================
 
-async function upsertSet(set: PokemonTcgSet): Promise<string> {
+async function upsertSet(set: TCGdexSet): Promise<string> {
   const result = await query(`
     INSERT INTO sn_tcg_sets (name, game, series, printed_total, release_date, logo_url, symbol_url, tcg_id)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -137,37 +137,35 @@ async function upsertSet(set: PokemonTcgSet): Promise<string> {
   `, [
     set.name,
     'Pokemon',
-    set.series,
-    set.printedTotal,
-    set.releaseDate,
-    set.images?.logo || null,
-    set.images?.symbol || null,
+    set.serie?.name || 'Unknown',
+    set.cardCount?.official || set.cardCount?.total || 0,
+    set.releaseDate || null,
+    set.logo || null,
+    set.symbol || null,
     set.id,
   ]);
   
-  return result.rows[0].id;
+  return result.rows[0]?.id;
 }
 
-async function upsertCard(card: PokemonTcgCard, setDbId: string): Promise<void> {
+async function upsertCard(card: TCGdexCard, setDbId: string): Promise<void> {
   await query(`
     INSERT INTO sn_tcg_cards (
       set_id, name, type, rarity, image_url, game,
       supertype, subtypes, types, hp, number, artist, rarity_slug, tcg_id,
       evolves_to, retreat_cost, converted_retreat_cost,
-      attacks, abilities, weaknesses, resistances, legalities, national_pokedex_numbers
+      attacks, abilities, weaknesses, resistances, national_pokedex_numbers
     )
     VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
     )
     ON CONFLICT (tcg_id) DO UPDATE SET
       name = EXCLUDED.name,
       rarity = EXCLUDED.rarity,
       image_url = EXCLUDED.image_url,
       supertype = EXCLUDED.supertype,
-      subtypes = EXCLUDED.subtypes,
       types = EXCLUDED.types,
       hp = EXCLUDED.hp,
-      number = EXCLUDED.number,
       artist = EXCLUDED.artist,
       rarity_slug = EXCLUDED.rarity_slug,
       evolves_to = EXCLUDED.evolves_to,
@@ -176,32 +174,30 @@ async function upsertCard(card: PokemonTcgCard, setDbId: string): Promise<void> 
       abilities = EXCLUDED.abilities,
       weaknesses = EXCLUDED.weaknesses,
       resistances = EXCLUDED.resistances,
-      legalities = EXCLUDED.legalities,
       national_pokedex_numbers = EXCLUDED.national_pokedex_numbers
   `, [
     setDbId,
     card.name,
-    card.types?.[0] || card.supertype || 'Unknown',
+    card.types?.[0] || card.category || 'Unknown',
     card.rarity || 'Common',
-    card.images?.large || card.images?.small || null,
+    card.image || null,
     'Pokemon',
-    card.supertype || null,
-    card.subtypes || null,
+    card.category || 'Pokémon',
+    null,
     card.types || null,
-    card.hp || null,
-    card.number || null,
-    card.artist || null,
+    card.hp?.toString() || null,
+    card.id.split('-').pop() || null,
+    card.illustrator || null,
     card.rarity || null,
     card.id,
-    card.evolvesTo || null,
-    card.retreatCost || null,
-    card.convertedRetreatCost || null,
+    card.evolvesFrom ? [card.evolvesFrom] : null,
+    card.retreat ? Array(card.retreat).fill('Colorless') : null,
+    card.retreat || null,
     card.attacks ? JSON.stringify(card.attacks) : null,
     card.abilities ? JSON.stringify(card.abilities) : null,
     card.weaknesses ? JSON.stringify(card.weaknesses) : null,
     card.resistances ? JSON.stringify(card.resistances) : null,
-    card.legalities ? JSON.stringify(card.legalities) : null,
-    card.nationalPokedexNumbers || null,
+    card.pokedexId ? [card.pokedexId] : null,
   ]);
 }
 
@@ -227,9 +223,6 @@ async function seedRarityConfig(setDbId: string): Promise<void> {
     { rarity: 'Rainbow Rare', weight: 0.015, min: 0, max: 1, guaranteed: false },
     { rarity: 'Secret Rare', weight: 0.01, min: 0, max: 1, guaranteed: false },
     { rarity: 'Shiny Rare', weight: 0.03, min: 0, max: 1, guaranteed: false },
-    { rarity: 'Golden Rare', weight: 0.01, min: 0, max: 1, guaranteed: false },
-    { rarity: 'Prism Rare', weight: 0.01, min: 0, max: 1, guaranteed: false },
-    { rarity: 'Double Rare', weight: 0.25, min: 0, max: 1, guaranteed: false },
   ];
   
   for (const config of rarityConfigs) {
@@ -249,13 +242,9 @@ async function seedRarityConfig(setDbId: string): Promise<void> {
 // MAIN IMPORT FUNCTION
 // ============================================
 
-async function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 async function importPokemonTcg(): Promise<void> {
   console.log('========================================');
-  console.log('Pokemon TCG Import Script');
+  console.log('Pokemon TCG Import Script (TCGdex API)');
   console.log('========================================\n');
   
   const startTime = Date.now();
@@ -281,7 +270,12 @@ async function importPokemonTcg(): Promise<void> {
       try {
         // Upsert set
         const setDbId = await upsertSet(set);
-        console.log(`  Set ID: ${setDbId}`);
+        
+        if (!setDbId) {
+          console.log(`  ✗ Failed to create set`);
+          totalErrors++;
+          continue;
+        }
         
         // Fetch and import cards
         const cards = await fetchCardsBySet(set.id);
