@@ -128,7 +128,7 @@ export default function Home() {
 
       <SignedIn>
         {user && (
-          <Layout activeTab={view} setActiveTab={setView} username={user.username} balance={user.balance}>
+          <Layout activeTab={view} setActiveTab={setView} username={user.username} balance={user.balance} role={user.role}>
             {view === 'dashboard' && <Dashboard onNavigate={setView} />}
             {view === 'collection' && <Collection collection={collection} />}
             {view === 'packs' && <PackOpener user={user} onOpen={handleOpen} />}

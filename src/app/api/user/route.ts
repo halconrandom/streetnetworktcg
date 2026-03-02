@@ -14,7 +14,7 @@ export async function GET() {
         
         // Get or create user in our database
         let userResult = await query(
-            'SELECT id, clerk_id, username, balance FROM sn_tcg_users WHERE clerk_id = $1',
+            'SELECT id, clerk_id, username, balance, role FROM sn_tcg_users WHERE clerk_id = $1',
             [userId]
         );
 
@@ -24,8 +24,8 @@ export async function GET() {
             const email = clerkUser?.emailAddresses?.[0]?.emailAddress || '';
             
             userResult = await query(
-                'INSERT INTO sn_tcg_users (clerk_id, username, email, balance) VALUES ($1, $2, $3, $4) RETURNING id, clerk_id, username, balance',
-                [userId, username, email, 2500]
+                'INSERT INTO sn_tcg_users (clerk_id, username, email, balance, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, clerk_id, username, balance, role',
+                [userId, username, email, 2500, 'user']
             );
         }
 
@@ -44,6 +44,7 @@ export async function GET() {
             username: user.username,
             avatar: clerkUser?.imageUrl || null,
             balance: user.balance || 0,
+            role: user.role || 'user',
             inventory: packsResult.rows
         });
     } catch (err: unknown) {

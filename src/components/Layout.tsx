@@ -12,9 +12,10 @@ interface LayoutProps {
   setActiveTab: (id: ViewType) => void;
   username?: string;
   balance?: number;
+  role?: string;
 }
 
-export function Layout({ children, activeTab, setActiveTab, username, balance }: LayoutProps) {
+export function Layout({ children, activeTab, setActiveTab, username, balance, role }: LayoutProps) {
   return (
     <div className="min-h-screen bg-[#080808] text-zinc-100 font-sans selection:bg-red-600/30 selection:text-red-200 flex flex-col">
       {/* Background Effects */}
@@ -24,7 +25,7 @@ export function Layout({ children, activeTab, setActiveTab, username, balance }:
       </div>
 
       <div className="relative z-10 flex-1 flex flex-col w-full max-w-[1600px] mx-auto">
-        <TopNav activeTab={activeTab} setActiveTab={setActiveTab} username={username} balance={balance} />
+        <TopNav activeTab={activeTab} setActiveTab={setActiveTab} username={username} balance={balance} role={role} />
         
         <main className="flex-1 px-8 pb-8 flex flex-col relative">
           <AnimatePresence mode="wait">

@@ -1,9 +1,10 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Gamepad2, Library, PackageOpen, Store, Search, Bell } from "lucide-react";
+import { Gamepad2, Library, PackageOpen, Store, Search, Bell, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
+import Link from "next/link";
 
 type ViewType = 'dashboard' | 'collection' | 'packs' | 'store';
 
@@ -19,9 +20,12 @@ interface TopNavProps {
   setActiveTab: (id: ViewType) => void;
   username?: string;
   balance?: number;
+  role?: string;
 }
 
-export function TopNav({ activeTab, setActiveTab, username = "Player", balance = 0 }: TopNavProps) {
+export function TopNav({ activeTab, setActiveTab, username = "Player", balance = 0, role = "user" }: TopNavProps) {
+  const isAdmin = role === 'admin' || role === 'mod';
+  
   return (
     <nav className="flex items-center justify-between px-8 py-6">
       {/* Logo Area */}
@@ -63,6 +67,17 @@ export function TopNav({ activeTab, setActiveTab, username = "Player", balance =
 
       {/* Right Actions */}
       <div className="flex items-center gap-4">
+        {/* Admin Link - Solo para admin/mod */}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="flex h-10 items-center gap-2 px-4 rounded-full bg-red-600/10 border border-red-600/20 text-red-500 text-sm font-medium hover:bg-red-600/20 transition-colors"
+          >
+            <Shield className="h-4 w-4" />
+            <span className="hidden sm:block">Admin</span>
+          </Link>
+        )}
+        
         <button className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.03] border border-white/5 text-zinc-400 hover:text-white transition-colors">
           <Search className="h-5 w-5" />
         </button>

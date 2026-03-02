@@ -110,7 +110,7 @@ export interface UserProfile {
   avatar: string | null;
   balance: number;
   inventory: InventoryItem[];
-  role?: 'user' | 'admin';
+  role?: 'user' | 'mod' | 'admin';
 }
 
 // ============================================
