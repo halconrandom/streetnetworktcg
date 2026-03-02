@@ -43,18 +43,16 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO sn_tcg_user;
 
 ---
 
-## 3. Ejecutar el Script de Migración
+## 3. Ejecutar los Scripts de Migración
 
-Sal de psql (`\q`) y ejecuta el script de migración:
+Ejecuta primero la migración base y luego la de Pokemon:
 
 ```bash
+# Migración base
 psql -U sn_tcg_user -d SNCardDB -f migration.sql
-```
 
-O si lo prefieres desde dentro de psql:
-
-```bash
-sudo -u postgres psql -d SNCardDB -f migration.sql
+# Migración para Pokemon TCG (campos extendidos)
+psql -U sn_tcg_user -d SNCardDB -f migration-pokemon.sql
 ```
 
 ---
@@ -74,142 +72,57 @@ DB_PASS=TU_CONTRASEÑA_SEGURA
 # Clerk Authentication
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_XXXXXXXXXXXXXXXX
 CLERK_SECRET_KEY=sk_test_XXXXXXXXXXXXXXXX
+
+# Pokemon TCG API (opcional, aumenta rate limit)
+POKEMON_TCG_API_KEY=tu_api_key_opcional
 ```
 
 ### Obtener las claves de Clerk:
 
 1. Ve a [https://dashboard.clerk.com/](https://dashboard.clerk.com/)
 2. Crea una nueva aplicación o selecciona una existente
-3. En **API Keys** encontrarás:
-   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (empieza con `pk_test_` o `pk_live_`)
-   - `CLERK_SECRET_KEY` (empieza con `sk_test_` o `sk_live_`)
+3. En **API Keys** encontrarás las claves
+
+### Obtener API Key de Pokemon TCG (opcional):
+
+1. Ve a [https://dev.pokemontcg.io/](https://dev.pokemontcg.io/)
+2. Crea una cuenta
+3. Genera tu API Key para mayor rate limit
 
 ---
 
-## 5. Configurar Clerk para el Proyecto
+## 5. Importar Datos de Pokemon TCG
 
-### 5.1 Configurar URLs permitidas
+### Opción A: Via API (recomendado)
 
-En el dashboard de Clerk, ve a **Paths** y configura:
+1. Inicia la aplicación: `npm run dev`
+2. Haz login con un usuario admin
+3. Visita: `POST http://localhost:3000/api/admin/import-pokemon`
+4. Body: `{ "action": "start" }`
 
-- **Sign-in URL**: `/sign-in`
-- **Sign-up URL**: `/sign-up`
-- **After sign-in URL**: `/`
-- **After sign-up URL**: `/`
+### Opción B: Via Script
 
-### 5.2 Configurar campos de registro
+```bash
+npx tsx src/scripts/import-pokemon.ts
+```
 
-En **Configure** → **User & Authentication** → **Email, Phone, Username**:
-
-- ✅ Habilitar **Username** (requerido)
-- ✅ Habilitar **Email address** (requerido)
-- ✅ Habilitar **Password** (requerido)
-
-### 5.3 Configurar restricciones de unicidad
-
-Clerk automáticamente maneja la unicidad de:
-- Username (no se puede repetir)
-- Email (no se puede repetir)
-
-No necesitas configuración adicional para esto.
+Esto importará:
+- ~150 sets de Pokemon TCG
+- ~18,000+ cartas
+- Configuración de rarezas por set
 
 ---
 
-## 6. Crear Usuario Admin (Opcional)
+## 6. Crear Usuario Admin
 
-Si necesitas un usuario administrador, primero regístrate normalmente a través de la aplicación, luego actualiza su rol en la base de datos:
+Primero regístrate normalmente a través de la aplicación, luego actualiza el rol:
 
 ```sql
--- Obtener el ID del usuario
-SELECT id, username, email FROM sn_tcg_users;
+-- Ver usuarios
+SELECT id, username, email, role FROM sn_tcg_users;
 
--- Actualizar a admin
+-- Hacer admin
 UPDATE sn_tcg_users SET role = 'admin' WHERE username = 'nombre_usuario';
-```
-
----
-
-## 7. Inicializar Datos Semilla
-
-Una vez configurado todo, visita la siguiente URL para crear las tablas y poblar datos iniciales:
-
-```
-https://tu-dominio.com/api/init-db
-```
-
-O en desarrollo:
-```
-http://localhost:3000/api/init-db
-```
-
-Esto creará:
-- Tablas con prefijo `sn_tcg_`
-- Sets de cartas (Pokemon, Yu-Gi-Oh!, Magic)
-- Cartas de ejemplo
-- Sobres disponibles
-
----
-
-## 8. Verificar la Instalación
-
-Conéctate a la base de datos y verifica:
-
-```sql
-\c SNCardDB
-
--- Verificar tablas
-\dt sn_tcg_*
-
--- Verificar datos
-SELECT * FROM sn_tcg_sets;
-SELECT * FROM sn_tcg_cards;
-SELECT * FROM sn_tcg_packs;
-```
-
----
-
-## 9. Configuración de Firewall (si es necesario)
-
-Si tu VPS tiene firewall, asegúrate de permitir conexiones PostgreSQL:
-
-```bash
-# Para UFW
-sudo ufw allow 5432/tcp
-
-# Para firewalld
-sudo firewall-cmd --add-port=5432/tcp --permanent
-sudo firewall-cmd --reload
-```
-
----
-
-## 10. Configurar PostgreSQL para Conexiones Remotas (si es necesario)
-
-Edita `postgresql.conf`:
-
-```bash
-sudo nano /etc/postgresql/*/main/postgresql.conf
-```
-
-Busca y modifica:
-```
-listen_addresses = '*'
-```
-
-Edita `pg_hba.conf`:
-
-```bash
-sudo nano /etc/postgresql/*/main/pg_hba.conf
-```
-
-Añade:
-```
-host    SNCardDB    sn_tcg_user    0.0.0.0/0    md5
-```
-
-Reinicia PostgreSQL:
-```bash
-sudo systemctl restart postgresql
 ```
 
 ---
@@ -220,40 +133,22 @@ sudo systemctl restart postgresql
 |-------|-------------|
 | `sn_tcg_users` | Usuarios vinculados a Clerk |
 | `sn_tcg_sets` | Sets de cartas (Pokemon, Yu-Gi-Oh!, Magic) |
-| `sn_tcg_cards` | Cartas individuales |
+| `sn_tcg_cards` | Cartas individuales con todos los campos |
 | `sn_tcg_packs` | Sobres disponibles para comprar |
 | `sn_tcg_user_packs` | Sobres que posee cada usuario |
 | `sn_tcg_inventory` | Cartas que posee cada usuario |
+| `sn_tcg_rarity_config` | Configuración de probabilidades por set |
+| `sn_tcg_import_logs` | Logs de importación |
 
 ---
 
-## Solución de Problemas
+## Sistema de Probabilidades (Rarity Engine)
 
-### Error de conexión
-```
-Error: connect ECONNREFUSED
-```
-- Verifica que PostgreSQL esté corriendo: `sudo systemctl status postgresql`
-- Verifica las credenciales en `.env.local`
+El sistema usa un motor de probabilidades con:
 
-### Error de permisos
-```
-Error: permission denied for table
-```
-- Ejecuta los comandos GRANT del paso 2
+- **Bad Luck Protection**: Después de 25 packs sin ultra rare, aumentan las probabilidades
+- **Lucky Streaks**: Consecutivos hits aumentan probabilidad
+- **Jackpot**: 0.5% de chance de pack con múltiples rares
+- **Variación por set**: Sets especiales tienen rates diferentes
 
-### Error de Clerk
-```
-Error: Clerk: No publishable key found
-```
-- Verifica que `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` esté configurado correctamente
-- Reinicia el servidor de desarrollo después de cambiar `.env.local`
-
----
-
-## Contacto y Soporte
-
-Para problemas adicionales, revisa la documentación de:
-- [Clerk Docs](https://clerk.com/docs)
-- [Next.js Docs](https://nextjs.org/docs)
-- [PostgreSQL Docs](https://www.postgresql.org/docs/)
+Ver `src/lib/rarity-engine.ts` para más detalles.
