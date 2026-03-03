@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
-import { ArrowLeft, Shield, Users, Package, Layers, UserCog, Image as ImageIcon, Trash2, X, Minus, Plus, Loader2 } from 'lucide-react';
+import { ArrowLeft, Shield, Users, Package, Layers, UserCog, Image as ImageIcon, Trash2, X, Minus, Plus, Loader2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { RarityBadge } from '@/components/ui/RarityBadge';
@@ -68,6 +68,11 @@ export default function UserCollectionPage({ params }: { params: Promise<{ id: s
   const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
   const [deleteQuantity, setDeleteQuantity] = useState(1);
   const [deleting, setDeleting] = useState(false);
+
+  // Clear collection modal state
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearConfirmation, setClearConfirmation] = useState('');
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     fetchUserCollection();
@@ -164,6 +169,33 @@ export default function UserCollectionPage({ params }: { params: Promise<{ id: s
     setShowDeleteModal(true);
   };
 
+  const handleClearCollection = async () => {
+    if (!data || clearConfirmation !== 'BORRAR') return;
+    
+    setClearing(true);
+    try {
+      const res = await fetch('/api/admin/user-collection/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: data.user.id }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Error clearing collection');
+      }
+
+      setShowClearModal(false);
+      setClearConfirmation('');
+      fetchUserCollection();
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'Error al borrar colección');
+    } finally {
+      setClearing(false);
+    }
+  };
+
   const getGameBadge = (game: string) => {
     switch (game) {
       case 'Pokemon':
@@ -258,25 +290,34 @@ export default function UserCollectionPage({ params }: { params: Promise<{ id: s
 
             {/* User Header */}
             <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 mb-8">
-              <div className="flex items-center gap-4">
-                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-2xl font-bold">
-                  {data.user.username.charAt(0).toUpperCase()}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-2xl font-bold">
+                    {data.user.username.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold text-white">{data.user.username}</h1>
+                    <p className="text-zinc-400">{data.user.email}</p>
+                    <span
+                      className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                        data.user.role === 'admin'
+                          ? 'bg-red-500/20 text-red-400'
+                          : data.user.role === 'mod'
+                          ? 'bg-amber-500/20 text-amber-400'
+                          : 'bg-zinc-500/20 text-zinc-400'
+                      }`}
+                    >
+                      {data.user.role}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-white">{data.user.username}</h1>
-                  <p className="text-zinc-400">{data.user.email}</p>
-                  <span
-                    className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                      data.user.role === 'admin'
-                        ? 'bg-red-500/20 text-red-400'
-                        : data.user.role === 'mod'
-                        ? 'bg-amber-500/20 text-amber-400'
-                        : 'bg-zinc-500/20 text-zinc-400'
-                    }`}
-                  >
-                    {data.user.role}
-                  </span>
-                </div>
+                <button
+                  onClick={() => setShowClearModal(true)}
+                  className="px-4 py-2 bg-red-600/10 border border-red-600/20 rounded-xl text-red-400 hover:bg-red-600/20 hover:text-red-300 transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Borrar Colección
+                </button>
               </div>
             </div>
 
@@ -545,6 +586,104 @@ export default function UserCollectionPage({ params }: { params: Promise<{ id: s
                     <>
                       <Trash2 className="h-4 w-4" />
                       Eliminar
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Clear Collection Modal */}
+      <AnimatePresence>
+        {showClearModal && data && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => !clearing && setShowClearModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-red-600/20 flex items-center justify-center">
+                    <AlertTriangle className="h-5 w-5 text-red-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white">Borrar Colección</h2>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="bg-red-600/10 border border-red-600/20 rounded-xl p-4">
+                  <p className="text-red-400 text-sm">
+                    Esta acción eliminará <strong>todas</strong> las cartas y sobres del usuario <strong>{data.user.username}</strong>.
+                  </p>
+                </div>
+
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                      <p className="text-2xl font-bold text-white">{data.stats.totalCards}</p>
+                      <p className="text-xs text-zinc-500">Cartas totales</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-white">{data.stats.totalPacks}</p>
+                      <p className="text-xs text-zinc-500">Sobres</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">
+                    Escribe <span className="text-red-400 font-medium">BORRAR</span> para confirmar
+                  </label>
+                  <input
+                    type="text"
+                    value={clearConfirmation}
+                    onChange={(e) => setClearConfirmation(e.target.value)}
+                    placeholder="BORRAR"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-red-600/50"
+                  />
+                </div>
+
+                <p className="text-sm text-zinc-500">
+                  Esta acción <strong>no se puede deshacer</strong>.
+                </p>
+              </div>
+
+              <div className="flex gap-3 p-6 border-t border-white/5">
+                <button
+                  onClick={() => {
+                    setShowClearModal(false);
+                    setClearConfirmation('');
+                  }}
+                  disabled={clearing}
+                  className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleClearCollection}
+                  disabled={clearing || clearConfirmation !== 'BORRAR'}
+                  className="flex-1 py-3 bg-red-600 rounded-xl text-white font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {clearing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Borrando...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      Borrar Todo
                     </>
                   )}
                 </button>
