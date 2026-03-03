@@ -2,9 +2,30 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Layers, ChevronDown, Shield, Users, Package, UserCog, X, Image, Eye } from 'lucide-react';
+import { Layers, ChevronDown, Shield, Users, Package, UserCog, X, Image as ImageIcon, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
+function CardThumb({ src, alt }: { src: string | null; alt: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <ImageIcon className="h-8 w-8 text-zinc-600" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-full h-full object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 interface Set {
   id: string;
@@ -157,12 +178,12 @@ export default function AdminSetsPage() {
   // Fix card image URL - TCGdex needs proper format
   const getCardImageUrl = (card: Card, set: Set | null) => {
     if (!card.image_url) return null;
-    
+
     // Si ya tiene extensión, usar tal cual
     if (card.image_url.endsWith('.png') || card.image_url.endsWith('.jpg') || card.image_url.endsWith('.webp')) {
       return card.image_url;
     }
-    
+
     // Si es de TCGdex sin extensión, construir URL correcta
     // Formato: https://assets.tcgdex.net/en/{setId}/{cardNumber}.jpg
     if (card.image_url.includes('assets.tcgdex.net')) {
@@ -173,7 +194,7 @@ export default function AdminSetsPage() {
       // Fallback: agregar .jpg
       return `${card.image_url}.jpg`;
     }
-    
+
     return card.image_url;
   };
 
@@ -224,11 +245,10 @@ export default function AdminSetsPage() {
                 <Link
                   key={item.id}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-red-600/10 text-red-500 border border-red-600/20'
-                      : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${isActive
+                    ? 'bg-red-600/10 text-red-500 border border-red-600/20'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                    }`}
                 >
                   <item.icon className="h-5 w-5" />
                   {item.label}
@@ -255,11 +275,10 @@ export default function AdminSetsPage() {
                   <button
                     key={game}
                     onClick={() => setGameFilter(game)}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                      gameFilter === game
-                        ? 'bg-red-600 text-white'
-                        : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'
-                    }`}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${gameFilter === game
+                      ? 'bg-red-600 text-white'
+                      : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'
+                      }`}
                   >
                     {game || 'Todos'}
                   </button>
@@ -303,7 +322,7 @@ export default function AdminSetsPage() {
                               />
                             ) : (
                               <div className="h-10 w-16 bg-white/5 rounded flex items-center justify-center">
-                                <Image className="h-5 w-5 text-zinc-600" />
+                                <ImageIcon className="h-5 w-5 text-zinc-600" />
                               </div>
                             )}
                             <div>
@@ -313,13 +332,13 @@ export default function AdminSetsPage() {
                               </p>
                             </div>
                           </button>
-                          
+
                           <div className="flex items-center gap-4">
                             <div className="text-right">
                               <p className="text-sm font-medium text-white">{set.cards_count} cartas</p>
                               <p className="text-xs text-zinc-500">{set.packs_count} packs</p>
                             </div>
-                            
+
                             {/* Ver cartas button */}
                             <button
                               onClick={() => openCardsModal(set)}
@@ -328,12 +347,11 @@ export default function AdminSetsPage() {
                               <Eye className="h-4 w-4" />
                               Ver cartas
                             </button>
-                            
+
                             <button onClick={() => handleExpand(set.id)}>
                               <ChevronDown
-                                className={`h-5 w-5 text-zinc-400 transition-transform ${
-                                  expandedSet === set.id ? 'rotate-180' : ''
-                                }`}
+                                className={`h-5 w-5 text-zinc-400 transition-transform ${expandedSet === set.id ? 'rotate-180' : ''
+                                  }`}
                               />
                             </button>
                           </div>
@@ -438,20 +456,7 @@ export default function AdminSetsPage() {
                         className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden group"
                       >
                         <div className="aspect-[3/4] relative bg-zinc-800">
-                          {getCardImageUrl(card, cardsModal.set) ? (
-                            <img
-                              src={getCardImageUrl(card, cardsModal.set)!}
-                              alt={card.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/card-placeholder.png';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Image className="h-8 w-8 text-zinc-600" />
-                            </div>
-                          )}
+                          <CardThumb src={getCardImageUrl(card, cardsModal.set)} alt={card.name} />
                         </div>
                         <div className="p-2">
                           <p className="text-xs font-medium text-white truncate">{card.name}</p>

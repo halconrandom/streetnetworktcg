@@ -123,6 +123,18 @@ async function fetchCardsBySet(setId: string): Promise<TCGdexCard[]> {
 // ============================================
 
 async function upsertSet(set: TCGdexSet): Promise<string> {
+  // TCGdex asset URLs need extension
+  // Format: https://assets.tcgdex.net/{lang}/{serie}/{set}/logo.webp or symbol.webp
+  let logoUrl = set.logo || null;
+  let symbolUrl = set.symbol || null;
+  
+  if (logoUrl && !logoUrl.endsWith('.webp') && !logoUrl.endsWith('.png')) {
+    logoUrl = `${logoUrl}/logo.webp`;
+  }
+  if (symbolUrl && !symbolUrl.endsWith('.webp') && !symbolUrl.endsWith('.png')) {
+    symbolUrl = `${symbolUrl}/symbol.webp`;
+  }
+
   const result = await query(`
     INSERT INTO sn_tcg_sets (name, game, series, printed_total, release_date, logo_url, symbol_url, tcg_id)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -140,8 +152,8 @@ async function upsertSet(set: TCGdexSet): Promise<string> {
     set.serie?.name || 'Unknown',
     set.cardCount?.official || set.cardCount?.total || 0,
     set.releaseDate || null,
-    set.logo || null,
-    set.symbol || null,
+    logoUrl,
+    symbolUrl,
     set.id,
   ]);
   
@@ -149,6 +161,13 @@ async function upsertSet(set: TCGdexSet): Promise<string> {
 }
 
 async function upsertCard(card: TCGdexCard, setDbId: string): Promise<void> {
+  // TCGdex image URLs need extension and quality
+  // Format: https://assets.tcgdex.net/{lang}/{serie}/{set}/{id}/{quality}.{ext}
+  let imageUrl = card.image || null;
+  if (imageUrl && !imageUrl.endsWith('.webp') && !imageUrl.endsWith('.png') && !imageUrl.endsWith('.jpg')) {
+    imageUrl = `${imageUrl}/high.webp`;
+  }
+
   await query(`
     INSERT INTO sn_tcg_cards (
       set_id, name, type, rarity, image_url, game,
@@ -180,7 +199,7 @@ async function upsertCard(card: TCGdexCard, setDbId: string): Promise<void> {
     card.name,
     card.types?.[0] || card.category || 'Unknown',
     card.rarity || 'Common',
-    card.image || null,
+    imageUrl,
     'Pokemon',
     card.category || 'Pokémon',
     null,

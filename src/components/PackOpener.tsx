@@ -5,9 +5,34 @@ import Image from "next/image";
 import { GlassPanel } from "./ui/GlassPanel";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
-import { PackageOpen, Sparkles } from "lucide-react";
+import { PackageOpen, Sparkles, ImageOff } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Card, UserProfile } from "@/lib/types";
+
+function CardImage({ src, alt }: { src: string | null | undefined; alt: string }) {
+  const [error, setError] = useState(false);
+
+  if (!src || error) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+        <ImageOff className="h-8 w-8 text-zinc-700" />
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      sizes="(max-width: 768px) 192px, 192px"
+      className="object-contain"
+      unoptimized
+      onError={() => setError(true)}
+    />
+  );
+}
+
 
 interface PackOpenerProps {
   user: UserProfile;
@@ -64,13 +89,13 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
   return (
     <div className="flex flex-col h-full gap-6 relative">
       <GlassPanel className="p-6 flex flex-col items-center justify-center min-h-[400px] flex-1 relative overflow-hidden">
-        
+
         {/* Background Effects */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.05)_0%,transparent_70%)] pointer-events-none" />
 
         <AnimatePresence mode="wait">
           {!selectedPackId && revealedCards.length === 0 && (
-            <motion.div 
+            <motion.div
               key="selection"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -84,7 +109,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
                 {user.inventory.map((item) => (
-                  <div 
+                  <div
                     key={item.packId}
                     onClick={() => item.count > 0 && setSelectedPackId(item.packId)}
                     className={`relative group rounded-3xl p-1 transition-all duration-300 ${item.count > 0 ? 'cursor-pointer hover:scale-105' : 'opacity-50 grayscale cursor-not-allowed'}`}
@@ -94,7 +119,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
                       <div className="absolute top-4 right-4">
                         <Badge variant={item.count > 0 ? "red" : "zinc"}>x{item.count}</Badge>
                       </div>
-                      
+
                       <div className="w-32 h-48 rounded-xl overflow-hidden relative mt-4 shadow-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
                         <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(getGameFromPackId(item.packId))} opacity-40`} />
                         <PackageOpen className="h-12 w-12 text-white/30" />
@@ -108,7 +133,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
                     </div>
                   </div>
                 ))}
-                
+
                 {user.inventory.length === 0 && (
                   <div className="col-span-3 py-12 text-center border border-dashed border-white/10 rounded-3xl">
                     <p className="text-zinc-500">No packs in inventory. Visit the store to buy some!</p>
@@ -131,7 +156,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
                 <PackageOpen className="h-16 w-16 text-white/30" />
                 <div className="absolute inset-0 border-4 border-white/20 rounded-2xl" />
               </div>
-              
+
               <div className="flex gap-4">
                 <Button variant="ghost" onClick={() => setSelectedPackId(null)}>Cancel</Button>
                 <Button variant="primary" size="lg" onClick={handleOpen} className="px-12 text-lg">
@@ -176,16 +201,10 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
                     transition={{ delay: index * 0.2, type: "spring", bounce: 0.4 }}
                     className="relative w-48 h-72 rounded-2xl overflow-hidden group cursor-pointer"
                   >
-                    <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(card.game)} opacity-40 group-hover:opacity-60 transition-opacity`} />
-                    <Image 
-                      src={card.imageUrl} 
-                      alt={card.name}
-                      fill
-                      className="object-cover mix-blend-overlay opacity-50"
-                      unoptimized
-                    />
+                    <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(card.game)} opacity-20 group-hover:opacity-40 transition-opacity`} />
+                    <CardImage src={card.imageUrl} alt={card.name} />
                     <div className="absolute inset-0 border-2 border-white/20 rounded-2xl group-hover:border-white/50 transition-colors" />
-                    
+
                     <div className="absolute inset-0 p-4 flex flex-col justify-between bg-gradient-to-t from-black/90 via-black/20 to-transparent">
                       <div className="flex justify-end">
                         <Badge variant={card.rarity.includes("Ultra") || card.rarity.includes("Mythic") ? "red" : "zinc"} className="text-[10px]">
