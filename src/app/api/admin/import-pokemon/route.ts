@@ -153,12 +153,14 @@ async function upsertCard(card: {
   ]);
 }
 
-async function createPackForSet(setDbId: string, setName: string): Promise<void> {
+async function createPackForSet(setDbId: string, setName: string, setLogo?: string): Promise<void> {
   await query(`
-    INSERT INTO sn_tcg_packs (set_id, name, price, card_count)
-    VALUES ($1, $2, $3, $4)
-    ON CONFLICT DO NOTHING
-  `, [setDbId, `${setName} Booster Pack`, 500, 10]);
+    INSERT INTO sn_tcg_packs (set_id, name, price, card_count, image_url)
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT (set_id) DO UPDATE SET
+      name = EXCLUDED.name,
+      image_url = COALESCE(EXCLUDED.image_url, sn_tcg_packs.image_url)
+  `, [setDbId, `${setName} Booster Pack`, 500, 10, setLogo || null]);
 }
 
 async function seedRarityConfig(setDbId: string): Promise<void> {
@@ -271,7 +273,10 @@ export async function POST(req: Request) {
       for (const set of sets) {
         const setDbId = await upsertSet(set as Parameters<typeof upsertSet>[0]);
         const cardCount = await importCardsForSet(set.id, setDbId);
-        await createPackForSet(setDbId, set.name);
+        
+        // Obtener el logo del set para usarlo como imagen del pack
+        const setLogo = (set as { images?: { logo?: string } }).images?.logo;
+        await createPackForSet(setDbId, set.name, setLogo);
         await seedRarityConfig(setDbId);
         
         totalCards += cardCount;

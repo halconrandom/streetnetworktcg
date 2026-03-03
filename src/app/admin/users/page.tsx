@@ -26,6 +26,7 @@ interface Pack {
   set_name: string | null;
   set_logo: string | null;
   game: string | null;
+  series: string | null;
 }
 
 const navItems = [
@@ -52,6 +53,8 @@ export default function AdminUsersPage() {
   const [assigning, setAssigning] = useState(false);
   const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
   const [gameFilter, setGameFilter] = useState<string>('');
+  const [seriesFilter, setSeriesFilter] = useState<string>('');
+  const [packSearch, setPackSearch] = useState<string>('');
   const [activePackId, setActivePackId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -146,6 +149,8 @@ export default function AdminUsersPage() {
     setSelectedPacks(new Map());
     setAssignSuccess(null);
     setGameFilter('');
+    setSeriesFilter('');
+    setPackSearch('');
     setActivePackId(null);
   };
 
@@ -197,9 +202,22 @@ export default function AdminUsersPage() {
       u.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filteredPacks = gameFilter
-    ? packs.filter(p => p.game === gameFilter)
-    : packs;
+  const filteredPacks = packs.filter(p => {
+    if (gameFilter && p.game !== gameFilter) return false;
+    if (seriesFilter && p.series !== seriesFilter) return false;
+    if (packSearch) {
+      const search = packSearch.toLowerCase();
+      const matchesName = p.name.toLowerCase().includes(search);
+      const matchesSet = p.set_name?.toLowerCase().includes(search);
+      if (!matchesName && !matchesSet) return false;
+    }
+    return true;
+  });
+
+  // Obtener series únicas del juego seleccionado
+  const availableSeries = gameFilter 
+    ? [...new Set(packs.filter(p => p.game === gameFilter && p.series).map(p => p.series))]
+    : [...new Set(packs.filter(p => p.series).map(p => p.series))];
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -475,28 +493,73 @@ export default function AdminUsersPage() {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {/* Game Filter */}
-                    <div className="flex gap-2 flex-wrap">
-                      <button
-                        onClick={() => setGameFilter('')}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                          gameFilter === '' ? 'bg-red-600 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                        Todos
-                      </button>
-                      {['Pokemon', 'Yu-Gi-Oh!', 'Magic'].map((game) => (
+                    {/* Search and Filters */}
+                    <div className="space-y-3">
+                      {/* Search */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                        <input
+                          type="text"
+                          placeholder="Buscar pack o set..."
+                          value={packSearch}
+                          onChange={(e) => setPackSearch(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-red-600/50"
+                        />
+                      </div>
+                      
+                      {/* Game Filter */}
+                      <div className="flex gap-2 flex-wrap">
                         <button
-                          key={game}
-                          onClick={() => setGameFilter(game)}
+                          onClick={() => { setGameFilter(''); setSeriesFilter(''); }}
                           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                            gameFilter === game ? 'bg-red-600 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
+                            gameFilter === '' ? 'bg-red-600 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
                           }`}
                         >
-                          {game}
+                          Todos
                         </button>
-                      ))}
+                        {['Pokemon', 'Yu-Gi-Oh!', 'Magic'].map((game) => (
+                          <button
+                            key={game}
+                            onClick={() => { setGameFilter(game); setSeriesFilter(''); }}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                              gameFilter === game ? 'bg-red-600 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            {game}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Series Filter (only for Pokemon) */}
+                      {gameFilter === 'Pokemon' && availableSeries.length > 0 && (
+                        <div className="flex gap-2 flex-wrap">
+                          <button
+                            onClick={() => setSeriesFilter('')}
+                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                              seriesFilter === '' ? 'bg-amber-600 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            Todas las series
+                          </button>
+                          {availableSeries.slice(0, 8).map((series) => (
+                            <button
+                              key={series}
+                              onClick={() => setSeriesFilter(series || '')}
+                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                seriesFilter === series ? 'bg-amber-600 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
+                              }`}
+                            >
+                              {series}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
+
+                    {/* Results count */}
+                    <p className="text-sm text-zinc-500">
+                      {filteredPacks.length} packs encontrados
+                    </p>
 
                     {/* Packs Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

@@ -36,10 +36,11 @@ export async function GET() {
         s.logo_url as set_logo,
         s.tcg_id as set_tcg_id,
         s.game,
+        s.series,
         (SELECT COUNT(*) FROM sn_tcg_cards c WHERE c.set_id = p.set_id) as cards_in_set
       FROM sn_tcg_packs p
       LEFT JOIN sn_tcg_sets s ON p.set_id = s.id
-      ORDER BY s.game, p.name
+      ORDER BY s.game, s.series, p.name
     `);
 
     return NextResponse.json({ packs: result.rows });

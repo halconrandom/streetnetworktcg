@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Plus, Edit2, Trash2, Shield, Users, Layers, UserCog, Eye, X, Image as ImageIcon } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, Shield, Users, Layers, UserCog, Eye, X, Image as ImageIcon, RefreshCw, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { RarityBadge } from '@/components/ui/RarityBadge';
@@ -86,6 +86,7 @@ export default function AdminPacksPage() {
     description: '',
     imageUrl: '',
   });
+  const [updatingImages, setUpdatingImages] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -139,6 +140,22 @@ export default function AdminPacksPage() {
 
   const closeCardsModal = () => {
     setCardsModal({ open: false, pack: null, cards: [], loading: false });
+  };
+
+  const handleUpdateImages = async () => {
+    setUpdatingImages(true);
+    try {
+      const res = await fetch('/api/admin/update-pack-images', { method: 'POST' });
+      if (!res.ok) throw new Error('Error updating images');
+      const data = await res.json();
+      alert(`Se actualizaron ${data.updated} imágenes de packs`);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      alert('Error al actualizar imágenes');
+    } finally {
+      setUpdatingImages(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -300,17 +317,31 @@ export default function AdminPacksPage() {
                 <h1 className="text-3xl font-bold text-white mb-2">Sobres</h1>
                 <p className="text-zinc-400">{packs.length} sobres disponibles</p>
               </div>
-              <button
-                onClick={() => {
-                  setEditingPack(null);
-                  setFormData({ name: '', setId: '', cardCount: 5, description: '', imageUrl: '' });
-                  setShowModal(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 rounded-xl text-white font-medium hover:bg-red-700 transition-colors"
-              >
-                <Plus className="h-5 w-5" />
-                Nuevo Sobre
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleUpdateImages}
+                  disabled={updatingImages}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-zinc-300 font-medium hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+                >
+                  {updatingImages ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-5 w-5" />
+                  )}
+                  Actualizar Imágenes
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingPack(null);
+                    setFormData({ name: '', setId: '', cardCount: 5, description: '', imageUrl: '' });
+                    setShowModal(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 rounded-xl text-white font-medium hover:bg-red-700 transition-colors"
+                >
+                  <Plus className="h-5 w-5" />
+                  Nuevo Sobre
+                </button>
+              </div>
             </div>
 
             {/* Packs Grid */}
