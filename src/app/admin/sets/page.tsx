@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Layers, ChevronDown, Shield, Users, Package, UserCog, X, Image as ImageIcon, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { RarityBadge } from '@/components/ui/RarityBadge';
 
 function CardThumb({ src, alt }: { src: string | null; alt: string }) {
   const [failed, setFailed] = useState(false);
@@ -36,6 +37,7 @@ interface Set {
   release_date: string | null;
   logo_url: string | null;
   tcg_id: string | null;
+  source: string | null;
   cards_count: string;
   packs_count: string;
 }
@@ -151,6 +153,13 @@ export default function AdminSetsPage() {
       default:
         return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
     }
+  };
+
+  const getSourceBadge = (source: string | null) => {
+    if (source === 'pocket') {
+      return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
+    }
+    return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
   };
 
   const getRarityBadge = (rarity: string) => {
@@ -322,7 +331,14 @@ export default function AdminSetsPage() {
                               </div>
                             )}
                             <div>
-                              <h3 className="font-medium text-white">{set.name}</h3>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-medium text-white">{set.name}</h3>
+                                {set.source === 'pocket' && (
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${getSourceBadge(set.source)}`}>
+                                    POCKET
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-sm text-zinc-500">
                                 {set.series} {set.release_date ? `• ${new Date(set.release_date).getFullYear()}` : ''}
                               </p>
@@ -457,9 +473,7 @@ export default function AdminSetsPage() {
                         <div className="p-2">
                           <p className="text-xs font-medium text-white truncate">{card.name}</p>
                           <div className="flex items-center justify-between mt-1">
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${getRarityBadge(card.rarity || card.rarity_slug || 'Common')}`}>
-                              {(card.rarity || card.rarity_slug || 'Common').substring(0, 10)}
-                            </span>
+                            <RarityBadge rarity={card.rarity || card.rarity_slug || 'Common'} size="sm" />
                             {card.number && (
                               <span className="text-[10px] text-zinc-500">#{card.number}</span>
                             )}

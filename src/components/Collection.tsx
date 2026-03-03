@@ -5,6 +5,7 @@ import Image from "next/image";
 import { GlassPanel } from "./ui/GlassPanel";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
+import { RarityBadge } from "./ui/RarityBadge";
 import { Search, Filter, Layers, ImageOff } from "lucide-react";
 import { motion } from "motion/react";
 import { Card } from "@/lib/types";
@@ -128,7 +129,7 @@ export function Collection({ collection }: CollectionProps) {
 
                   <div>
                     <h3 className="text-sm font-bold text-white leading-tight mb-1 group-hover:text-red-400 transition-colors">{card.name}</h3>
-                    <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-semibold">{card.rarity}</p>
+                    <RarityBadge rarity={card.rarity} size="sm" />
                   </div>
                 </div>
               </motion.div>

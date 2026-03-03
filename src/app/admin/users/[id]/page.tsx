@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { ArrowLeft, Shield, Users, Package, Layers, UserCog, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { RarityBadge } from '@/components/ui/RarityBadge';
 
 interface UserData {
   user: {
@@ -316,13 +317,7 @@ export default function UserCollectionPage({ params }: { params: { id: string } 
                       <div className="p-2">
                         <p className="text-sm font-medium text-white truncate">{card.name}</p>
                         <p className="text-xs text-zinc-500 truncate">{card.set_name}</p>
-                        <span
-                          className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] ${getRarityBadge(
-                            card.rarity
-                          )}`}
-                        >
-                          {card.rarity}
-                        </span>
+                        <RarityBadge rarity={card.rarity} size="sm" />
                       </div>
                     </motion.div>
                   ))}

@@ -5,9 +5,11 @@ import Image from "next/image";
 import { GlassPanel } from "./ui/GlassPanel";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
+import { RarityBadge, RarityGlow } from "./ui/RarityBadge";
 import { PackageOpen, Sparkles, ImageOff } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Card, UserProfile } from "@/lib/types";
+import { isHitRarity } from "@/lib/rarity-utils";
 
 function CardImage({ src, alt }: { src: string | null | undefined; alt: string }) {
   const [error, setError] = useState(false);
@@ -193,28 +195,29 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
               </div>
 
               <div className="flex flex-wrap justify-center gap-6">
-                {revealedCards.map((card, index) => (
-                  <motion.div
-                    key={card.id}
-                    initial={{ opacity: 0, y: 50, scale: 0.8, rotateY: 90 }}
-                    animate={{ opacity: 1, y: 0, scale: 1, rotateY: 0 }}
-                    transition={{ delay: index * 0.2, type: "spring", bounce: 0.4 }}
-                    className="relative w-48 h-72 rounded-2xl overflow-hidden group cursor-pointer"
-                  >
-                    <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(card.game)} opacity-20 group-hover:opacity-40 transition-opacity`} />
-                    <CardImage src={card.imageUrl} alt={card.name} />
-                    <div className="absolute inset-0 border-2 border-white/20 rounded-2xl group-hover:border-white/50 transition-colors" />
+                {revealedCards.map((card, index) => {
+                  const isHit = isHitRarity(card.rarity);
+                  return (
+                    <motion.div
+                      key={card.id}
+                      initial={{ opacity: 0, y: 50, scale: 0.8, rotateY: 90 }}
+                      animate={{ opacity: 1, y: 0, scale: 1, rotateY: 0 }}
+                      transition={{ delay: index * 0.2, type: "spring", bounce: 0.4 }}
+                      className={`relative w-48 h-72 rounded-2xl overflow-hidden group cursor-pointer ${isHit ? 'ring-2 ring-amber-400/50' : ''}`}
+                    >
+                      <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(card.game)} opacity-20 group-hover:opacity-40 transition-opacity`} />
+                      <CardImage src={card.imageUrl} alt={card.name} />
+                      <div className="absolute inset-0 border-2 border-white/20 rounded-2xl group-hover:border-white/50 transition-colors" />
 
-                    <div className="absolute inset-0 p-4 flex flex-col justify-between bg-gradient-to-t from-black/90 via-black/20 to-transparent">
-                      <div className="flex justify-end">
-                        <Badge variant={card.rarity.includes("Ultra") || card.rarity.includes("Mythic") || card.rarity.includes("Rare") ? "red" : "zinc"} className="text-[10px]">
-                          {card.rarity}
-                        </Badge>
+                      <div className="absolute inset-0 p-4 flex flex-col justify-between bg-gradient-to-t from-black/90 via-black/20 to-transparent">
+                        <div className="flex justify-end">
+                          <RarityBadge rarity={card.rarity} size="sm" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white leading-tight">{card.name}</h3>
                       </div>
-                      <h3 className="text-lg font-bold text-white leading-tight">{card.name}</h3>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </div>
 
               <Button variant="glass" onClick={reset} className="mt-4">

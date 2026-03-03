@@ -76,6 +76,7 @@ export async function GET(req: NextRequest) {
         s.release_date,
         s.logo_url,
         s.tcg_id,
+        s.source,
         (SELECT COUNT(*) FROM sn_tcg_cards c WHERE c.set_id = s.id) as cards_count,
         (SELECT COUNT(*) FROM sn_tcg_packs p WHERE p.set_id = s.id) as packs_count
       FROM sn_tcg_sets s
