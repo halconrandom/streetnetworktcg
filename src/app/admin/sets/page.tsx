@@ -154,6 +154,29 @@ export default function AdminSetsPage() {
     return `${url}.png`;
   };
 
+  // Fix card image URL - TCGdex needs proper format
+  const getCardImageUrl = (card: Card, set: Set | null) => {
+    if (!card.image_url) return null;
+    
+    // Si ya tiene extensión, usar tal cual
+    if (card.image_url.endsWith('.png') || card.image_url.endsWith('.jpg') || card.image_url.endsWith('.webp')) {
+      return card.image_url;
+    }
+    
+    // Si es de TCGdex sin extensión, construir URL correcta
+    // Formato: https://assets.tcgdex.net/en/{setId}/{cardNumber}.jpg
+    if (card.image_url.includes('assets.tcgdex.net')) {
+      const tcgId = set?.tcg_id;
+      if (tcgId && card.number) {
+        return `https://assets.tcgdex.net/en/${tcgId}/${card.number}.jpg`;
+      }
+      // Fallback: agregar .jpg
+      return `${card.image_url}.jpg`;
+    }
+    
+    return card.image_url;
+  };
+
   const filteredSets = gameFilter
     ? sets.filter((s) => s.game === gameFilter)
     : sets;
@@ -415,11 +438,14 @@ export default function AdminSetsPage() {
                         className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden group"
                       >
                         <div className="aspect-[3/4] relative bg-zinc-800">
-                          {card.image_url ? (
+                          {getCardImageUrl(card, cardsModal.set) ? (
                             <img
-                              src={card.image_url}
+                              src={getCardImageUrl(card, cardsModal.set)!}
                               alt={card.name}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/card-placeholder.png';
+                              }}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">

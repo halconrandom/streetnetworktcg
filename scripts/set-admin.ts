@@ -1,46 +1,53 @@
 import { Pool } from 'pg';
 
-const pool = new Pool({
-  host: '198.245.57.170',
-  port: 5432,
-  user: 'sg_tcg_user',
-  password: 'Merida19521973',
-  database: 'SNCardDB',
-  ssl: { rejectUnauthorized: false },
-});
+async function setAdmin() {
+  const pool = new Pool({
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT || '5432'),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    ssl: { rejectUnauthorized: false },
+  });
 
-async function main() {
-  // Ver usuarios existentes
-  const allUsers = await pool.query('SELECT id, clerk_id, username, email, role FROM sn_tcg_users');
-  console.log('📋 Usuarios en la DB:');
-  allUsers.rows.forEach(u => console.log(`  - ${u.username} (${u.clerk_id}) - rol: ${u.role}`));
+  try {
+    // Obtener el primer usuario
+    const userResult = await pool.query(`
+      SELECT id, username, email, role FROM sn_tcg_users ORDER BY created_at ASC LIMIT 1
+    `);
 
-  // Buscar o crear el usuario
-  const clerkId = 'user_3AMxg97xPY3XvvB5Uqlx5VHmFmF';
-  
-  let result = await pool.query(
-    'SELECT id, username, role FROM sn_tcg_users WHERE clerk_id = $1',
-    [clerkId]
-  );
+    if (userResult.rows.length === 0) {
+      console.log('❌ No hay usuarios en la base de datos');
+      console.log('💡 Primero debes registrarte en la aplicación');
+      return;
+    }
 
-  if (result.rows.length === 0) {
-    // Crear usuario admin
-    result = await pool.query(
-      "INSERT INTO sn_tcg_users (clerk_id, username, email, role, balance) VALUES ($1, $2, $3, 'admin', 999999) RETURNING id, username, role",
-      [clerkId, 'Admin', 'admin@streetgames.com']
-    );
-    console.log('\n✅ Usuario admin CREADO:');
-  } else {
+    const user = userResult.rows[0];
+    console.log(`👤 Usuario encontrado: ${user.username} (${user.email})`);
+    console.log(`📋 Rol actual: ${user.role}`);
+
+    if (user.role === 'admin') {
+      console.log('✅ Este usuario ya es admin');
+      return;
+    }
+
     // Actualizar a admin
-    result = await pool.query(
-      "UPDATE sn_tcg_users SET role = 'admin' WHERE clerk_id = $1 RETURNING id, username, role",
-      [clerkId]
-    );
-    console.log('\n✅ Usuario actualizado a ADMIN:');
-  }
+    await pool.query(`
+      UPDATE sn_tcg_users SET role = 'admin' WHERE id = $1
+    `, [user.id]);
 
-  console.log(result.rows[0]);
-  await pool.end();
+    console.log('✅ Usuario actualizado a admin correctamente');
+    console.log('⚠️  IMPORTANTE: También debes actualizar el rol en Clerk Dashboard');
+    console.log('   1. Ve a https://dashboard.clerk.com/');
+    console.log('   2. Selecciona tu aplicación');
+    console.log('   3. Ve a Users → selecciona el usuario');
+    console.log('   4. En "Public Metadata", agrega: { "role": "admin" }');
+
+  } catch (error) {
+    console.error('❌ Error:', error);
+  } finally {
+    await pool.end();
+  }
 }
 
-main();
+setAdmin();
