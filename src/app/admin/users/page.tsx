@@ -52,6 +52,7 @@ export default function AdminUsersPage() {
   const [assigning, setAssigning] = useState(false);
   const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
   const [gameFilter, setGameFilter] = useState<string>('');
+  const [activePackId, setActivePackId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -145,6 +146,7 @@ export default function AdminUsersPage() {
     setSelectedPacks(new Map());
     setAssignSuccess(null);
     setGameFilter('');
+    setActivePackId(null);
   };
 
   const openAssignModal = (user: User) => {
@@ -154,13 +156,23 @@ export default function AdminUsersPage() {
   };
 
   const togglePackSelection = (pack: Pack) => {
-    const newSelection = new Map(selectedPacks);
-    if (newSelection.has(pack.id)) {
+    // Si ya está seleccionado, lo quitamos
+    if (selectedPacks.has(pack.id)) {
+      const newSelection = new Map(selectedPacks);
       newSelection.delete(pack.id);
+      setSelectedPacks(newSelection);
+      setActivePackId(null);
     } else {
-      newSelection.set(pack.id, { pack, quantity: 1 });
+      // Si no está seleccionado, activamos el selector de cantidad
+      setActivePackId(pack.id);
     }
+  };
+
+  const confirmPackSelection = (pack: Pack, quantity: number) => {
+    const newSelection = new Map(selectedPacks);
+    newSelection.set(pack.id, { pack, quantity });
     setSelectedPacks(newSelection);
+    setActivePackId(null);
   };
 
   const updatePackQuantity = (packId: string, delta: number) => {
@@ -490,18 +502,23 @@ export default function AdminUsersPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {filteredPacks.map((pack) => {
                         const isSelected = selectedPacks.has(pack.id);
+                        const isActive = activePackId === pack.id;
+                        const selectedData = selectedPacks.get(pack.id);
+                        
                         return (
-                          <button
+                          <div
                             key={pack.id}
-                            onClick={() => togglePackSelection(pack)}
-                            className={`p-4 rounded-xl border text-left transition-all ${
-                              isSelected
+                            className={`p-4 rounded-xl border transition-all ${
+                              isActive
+                                ? 'bg-amber-600/10 border-amber-600/30'
+                                : isSelected
                                 ? 'bg-green-600/10 border-green-600/30'
                                 : 'bg-white/[0.02] border-white/5 hover:bg-white/5'
                             }`}
                           >
+                            {/* Pack Info */}
                             <div className="flex items-center gap-3 mb-2">
-                              <div className="h-12 w-12 rounded-lg bg-zinc-800 flex items-center justify-center overflow-hidden">
+                              <div className="h-12 w-12 rounded-lg bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
                                 {pack.image_url || pack.set_logo ? (
                                   <img
                                     src={pack.image_url || pack.set_logo || ''}
@@ -520,20 +537,86 @@ export default function AdminUsersPage() {
                                 <p className="text-xs text-zinc-500 truncate">{pack.set_name || 'Pack personalizado'}</p>
                               </div>
                             </div>
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between mb-3">
                               <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${getGameBadge(pack.game)}`}>
                                 {pack.game || 'N/A'}
                               </span>
                               <span className="text-xs text-zinc-500">{pack.card_count} cartas</span>
                             </div>
-                            {isSelected && (
-                              <div className="mt-2 flex items-center justify-end">
-                                <div className="h-5 w-5 rounded-full bg-green-600 flex items-center justify-center">
-                                  <Check className="h-3 w-3 text-white" />
+
+                            {/* Quantity Selector or Action Button */}
+                            {isActive ? (
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-center gap-3">
+                                  <button
+                                    onClick={() => {
+                                      const current = selectedPacks.get(pack.id);
+                                      const qty = current?.quantity || 1;
+                                      if (qty > 1) {
+                                        const newSelection = new Map(selectedPacks);
+                                        newSelection.set(pack.id, { pack, quantity: qty - 1 });
+                                        setSelectedPacks(newSelection);
+                                      }
+                                    }}
+                                    className="p-2 bg-white/5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
+                                  >
+                                    <Minus className="h-4 w-4" />
+                                  </button>
+                                  <span className="text-white font-bold text-lg w-12 text-center">
+                                    {selectedData?.quantity || 1}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      const current = selectedPacks.get(pack.id);
+                                      const qty = (current?.quantity || 1) + 1;
+                                      const newSelection = new Map(selectedPacks);
+                                      newSelection.set(pack.id, { pack, quantity: qty });
+                                      setSelectedPacks(newSelection);
+                                    }}
+                                    className="p-2 bg-white/5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </button>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => setActivePackId(null)}
+                                    className="flex-1 py-2 bg-white/5 rounded-lg text-zinc-400 hover:text-white text-sm"
+                                  >
+                                    Cancelar
+                                  </button>
+                                  <button
+                                    onClick={() => confirmPackSelection(pack, selectedData?.quantity || 1)}
+                                    className="flex-1 py-2 bg-green-600 rounded-lg text-white text-sm font-medium hover:bg-green-700"
+                                  >
+                                    Confirmar
+                                  </button>
                                 </div>
                               </div>
+                            ) : isSelected ? (
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-5 w-5 rounded-full bg-green-600 flex items-center justify-center">
+                                    <Check className="h-3 w-3 text-white" />
+                                  </div>
+                                  <span className="text-green-400 font-medium">{selectedData?.quantity}x</span>
+                                </div>
+                                <button
+                                  onClick={() => togglePackSelection(pack)}
+                                  className="text-xs text-red-400 hover:text-red-300"
+                                >
+                                  Quitar
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => togglePackSelection(pack)}
+                                className="w-full py-2 bg-white/5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 text-sm transition-colors"
+                              >
+                                Seleccionar
+                              </button>
                             )}
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
