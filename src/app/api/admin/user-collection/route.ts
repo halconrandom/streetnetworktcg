@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { query } from '@/lib/db';
+import { query, getClient } from '@/lib/db';
 
 // GET - Ver colección de un usuario específico
 export async function GET(req: NextRequest) {
@@ -109,5 +109,83 @@ export async function GET(req: NextRequest) {
   } catch (err: unknown) {
     console.error('Error fetching user collection:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+// DELETE - Eliminar cartas del inventario de un usuario
+export async function DELETE(req: NextRequest) {
+  try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verificar que sea admin o mod
+    const userResult = await query(
+      'SELECT role FROM sn_tcg_users WHERE clerk_id = $1',
+      [userId]
+    );
+
+    const userRole = userResult.rows[0]?.role;
+    if (userRole !== 'admin' && userRole !== 'mod') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { targetUserId, cardId, quantity } = body;
+
+    if (!targetUserId || !cardId || !quantity || quantity < 1) {
+      return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
+    }
+
+    const client = await getClient();
+    try {
+      await client.query('BEGIN');
+
+      // Verificar cantidad actual
+      const currentResult = await client.query(
+        'SELECT quantity FROM sn_tcg_inventory WHERE user_id = $1 AND card_id = $2',
+        [targetUserId, cardId]
+      );
+
+      if (currentResult.rows.length === 0) {
+        throw new Error('El usuario no tiene esta carta');
+      }
+
+      const currentQty = currentResult.rows[0].quantity;
+      if (quantity > currentQty) {
+        throw new Error(`El usuario solo tiene ${currentQty} de esta carta`);
+      }
+
+      // Actualizar o eliminar
+      if (quantity >= currentQty) {
+        await client.query(
+          'DELETE FROM sn_tcg_inventory WHERE user_id = $1 AND card_id = $2',
+          [targetUserId, cardId]
+        );
+      } else {
+        await client.query(
+          'UPDATE sn_tcg_inventory SET quantity = quantity - $1 WHERE user_id = $2 AND card_id = $3',
+          [quantity, targetUserId, cardId]
+        );
+      }
+
+      await client.query('COMMIT');
+
+      return NextResponse.json({ 
+        success: true, 
+        message: `Eliminadas ${quantity} cartas` 
+      });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err: unknown) {
+    console.error('Error deleting card:', err);
+    const message = err instanceof Error ? err.message : 'Internal Server Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

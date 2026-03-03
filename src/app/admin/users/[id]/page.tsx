@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
+import { use, useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
-import { ArrowLeft, Shield, Users, Package, Layers, UserCog, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Shield, Users, Package, Layers, UserCog, Image as ImageIcon, Trash2, X, Minus, Plus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { RarityBadge } from '@/components/ui/RarityBadge';
@@ -54,19 +54,28 @@ const navItems = [
   { id: 'transactions', label: 'Transacciones', icon: UserCog, href: '/admin/transactions' },
 ];
 
-export default function UserCollectionPage({ params }: { params: { id: string } }) {
+export default function UserCollectionPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
   const [data, setData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedGame, setSelectedGame] = useState<string>('');
   const pathname = usePathname();
 
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteType, setDeleteType] = useState<'card' | 'pack'>('card');
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
+  const [deleteQuantity, setDeleteQuantity] = useState(1);
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     fetchUserCollection();
-  }, [params.id]);
+  }, [resolvedParams.id]);
 
   const fetchUserCollection = async () => {
     try {
-      const res = await fetch(`/api/admin/user-collection?userId=${params.id}`);
+      const res = await fetch(`/api/admin/user-collection?userId=${resolvedParams.id}`);
       if (!res.ok) throw new Error('Error fetching user collection');
       const userData = await res.json();
       setData(userData);
@@ -75,6 +84,84 @@ export default function UserCollectionPage({ params }: { params: { id: string } 
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteCard = async () => {
+    if (!selectedCard || !data) return;
+    
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/admin/user-collection', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: data.user.id,
+          cardId: selectedCard.id,
+          quantity: deleteQuantity
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Error deleting card');
+      }
+
+      setShowDeleteModal(false);
+      setSelectedCard(null);
+      setDeleteQuantity(1);
+      fetchUserCollection();
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'Error al eliminar');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeletePack = async () => {
+    if (!selectedPack || !data) return;
+    
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/admin/user-packs', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: data.user.id,
+          packId: selectedPack.id,
+          quantity: deleteQuantity
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Error deleting pack');
+      }
+
+      setShowDeleteModal(false);
+      setSelectedPack(null);
+      setDeleteQuantity(1);
+      fetchUserCollection();
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'Error al eliminar');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const openCardDeleteModal = (card: Card) => {
+    setSelectedCard(card);
+    setDeleteType('card');
+    setDeleteQuantity(1);
+    setShowDeleteModal(true);
+  };
+
+  const openPackDeleteModal = (pack: Pack) => {
+    setSelectedPack(pack);
+    setDeleteType('pack');
+    setDeleteQuantity(1);
+    setShowDeleteModal(true);
   };
 
   const getGameBadge = (game: string) => {
@@ -88,21 +175,6 @@ export default function UserCollectionPage({ params }: { params: { id: string } 
       default:
         return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
     }
-  };
-
-  const getRarityBadge = (rarity: string) => {
-    const rarityColors: Record<string, string> = {
-      'Common': 'bg-zinc-500/20 text-zinc-400',
-      'Uncommon': 'bg-green-500/20 text-green-400',
-      'Rare': 'bg-blue-500/20 text-blue-400',
-      'Rare Holo': 'bg-cyan-500/20 text-cyan-400',
-      'Ultra Rare': 'bg-purple-500/20 text-purple-400',
-      'Illustration Rare': 'bg-pink-500/20 text-pink-400',
-      'Special Illustration Rare': 'bg-rose-500/20 text-rose-400',
-      'Hyper Rare': 'bg-amber-500/20 text-amber-400',
-      'Secret Rare': 'bg-red-500/20 text-red-400',
-    };
-    return rarityColors[rarity] || 'bg-zinc-500/20 text-zinc-400';
   };
 
   if (loading) {
@@ -236,8 +308,14 @@ export default function UserCollectionPage({ params }: { params: { id: string } 
                   {data.packs.map((pack) => (
                     <div
                       key={pack.id}
-                      className="bg-white/[0.02] border border-white/5 rounded-xl p-4"
+                      className="bg-white/[0.02] border border-white/5 rounded-xl p-4 group relative"
                     >
+                      <button
+                        onClick={() => openPackDeleteModal(pack)}
+                        className="absolute top-2 right-2 p-1.5 bg-red-600/10 border border-red-600/20 rounded-lg text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-600/20 transition-all"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-white">{pack.name}</p>
@@ -292,8 +370,14 @@ export default function UserCollectionPage({ params }: { params: { id: string } 
                       key={card.id}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden group"
+                      className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden group relative"
                     >
+                      <button
+                        onClick={() => openCardDeleteModal(card)}
+                        className="absolute top-2 left-2 z-10 p-1.5 bg-red-600/80 border border-red-600/20 rounded-lg text-white opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-all"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                       <div className="aspect-[3/4] relative">
                         {card.image_url ? (
                           <Image
@@ -332,6 +416,143 @@ export default function UserCollectionPage({ params }: { params: { id: string } 
           </motion.div>
         </main>
       </div>
+
+      {/* Delete Modal */}
+      <AnimatePresence>
+        {showDeleteModal && (selectedCard || selectedPack) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => !deleting && setShowDeleteModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-white/5">
+                <h2 className="text-xl font-bold text-white">
+                  Eliminar {deleteType === 'card' ? 'Carta' : 'Sobre'}
+                </h2>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Item Info */}
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
+                  {deleteType === 'card' && selectedCard ? (
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-lg bg-zinc-800 overflow-hidden">
+                        {selectedCard.image_url ? (
+                          <Image
+                            src={selectedCard.image_url}
+                            alt={selectedCard.name}
+                            width={48}
+                            height={64}
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="h-6 w-6 text-zinc-600" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">{selectedCard.name}</p>
+                        <p className="text-xs text-zinc-500">{selectedCard.set_name}</p>
+                        <p className="text-xs text-zinc-400">Tiene: {selectedCard.quantity}</p>
+                      </div>
+                    </div>
+                  ) : selectedPack ? (
+                    <div>
+                      <p className="font-medium text-white">{selectedPack.name}</p>
+                      <p className="text-xs text-zinc-500">{selectedPack.set_name}</p>
+                      <p className="text-xs text-zinc-400">Tiene: {selectedPack.count}</p>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Quantity Selector */}
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">Cantidad a eliminar</label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setDeleteQuantity(Math.max(1, deleteQuantity - 1))}
+                      className="p-2 bg-white/5 border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      max={deleteType === 'card' ? selectedCard?.quantity : selectedPack?.count}
+                      value={deleteQuantity}
+                      onChange={(e) => {
+                        const max = deleteType === 'card' ? selectedCard?.quantity : selectedPack?.count;
+                        setDeleteQuantity(Math.min(max || 1, Math.max(1, parseInt(e.target.value) || 1)));
+                      }}
+                      className="w-20 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-center focus:outline-none focus:border-red-600/50"
+                    />
+                    <button
+                      onClick={() => {
+                        const max = deleteType === 'card' ? selectedCard?.quantity : selectedPack?.count;
+                        setDeleteQuantity(Math.min(max || 1, deleteQuantity + 1));
+                      }}
+                      className="p-2 bg-white/5 border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        const max = deleteType === 'card' ? selectedCard?.quantity : selectedPack?.count;
+                        if (max) setDeleteQuantity(max);
+                      }}
+                      className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-white/10"
+                    >
+                      Todas
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-sm text-zinc-500">
+                  Esta acción no se puede deshacer.
+                </p>
+              </div>
+
+              <div className="flex gap-3 p-6 border-t border-white/5">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={deleting}
+                  className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={deleteType === 'card' ? handleDeleteCard : handleDeletePack}
+                  disabled={deleting}
+                  className="flex-1 py-3 bg-red-600 rounded-xl text-white font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {deleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Eliminando...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      Eliminar
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
