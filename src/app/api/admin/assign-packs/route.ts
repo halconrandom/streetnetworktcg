@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
     // Verificar que sea admin o mod
     const adminResult = await query(
-      'SELECT id, role FROM sn_tcg_users WHERE clerk_id = $1',
+      'SELECT id, role, username FROM sn_tcg_users WHERE clerk_id = $1',
       [userId]
     );
 
@@ -32,15 +32,27 @@ export async function POST(req: NextRequest) {
     try {
       await client.query('BEGIN');
 
-      // Verificar que el pack existe
-      const packResult = await client.query(
-        'SELECT id, name FROM sn_tcg_packs WHERE id = $1',
-        [packId]
-      );
+      // Obtener info del pack y set
+      const packResult = await client.query(`
+        SELECT p.id, p.name, p.card_count, s.id as set_id, s.name as set_name, s.game
+        FROM sn_tcg_packs p
+        LEFT JOIN sn_tcg_sets s ON p.set_id = s.id
+        WHERE p.id = $1
+      `, [packId]);
 
       if (packResult.rows.length === 0) {
         throw new Error('Pack not found');
       }
+
+      const pack = packResult.rows[0];
+
+      // Obtener info del usuario destino
+      const targetUserResult = await client.query(
+        'SELECT id, username, email FROM sn_tcg_users WHERE id = $1',
+        [targetUserId]
+      );
+
+      const targetUser = targetUserResult.rows[0];
 
       // Agregar packs al usuario
       await client.query(`
@@ -50,11 +62,30 @@ export async function POST(req: NextRequest) {
         DO UPDATE SET count = sn_tcg_user_packs.count + $3
       `, [targetUserId, packId, quantity]);
 
-      // Registrar la asignación
+      // Registrar la asignación (tabla legacy)
       await client.query(`
         INSERT INTO sn_tcg_pack_assignments (user_id, pack_id, admin_id, quantity, notes)
         VALUES ($1, $2, $3, $4, $5)
       `, [targetUserId, packId, adminUser.id, quantity, notes || null]);
+
+      // Registrar en transacciones con detalles completos
+      await client.query(`
+        INSERT INTO sn_tcg_transactions (user_id, admin_id, action_type, action_data)
+        VALUES ($1, $2, 'pack_assignment', $3)
+      `, [targetUserId, adminUser.id, JSON.stringify({
+        packId: pack.id,
+        packName: pack.name,
+        setId: pack.set_id,
+        setName: pack.set_name,
+        game: pack.game,
+        cardCount: pack.card_count,
+        quantity,
+        notes: notes || null,
+        // Info adicional para mostrar en logs
+        adminUsername: adminUser.username,
+        targetUsername: targetUser?.username,
+        targetEmail: targetUser?.email
+      })]);
 
       await client.query('COMMIT');
 

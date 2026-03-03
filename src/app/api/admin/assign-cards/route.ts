@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
     // Verificar que sea admin o mod
     const adminResult = await query(
-      'SELECT id, role FROM sn_tcg_users WHERE clerk_id = $1',
+      'SELECT id, role, username FROM sn_tcg_users WHERE clerk_id = $1',
       [userId]
     );
 
@@ -41,20 +41,30 @@ export async function POST(req: NextRequest) {
     try {
       await client.query('BEGIN');
 
-      const assignedCards: { cardId: string; cardName: string; quantity: number }[] = [];
+      // Obtener info del usuario destino
+      const targetUserResult = await client.query(
+        'SELECT id, username, email FROM sn_tcg_users WHERE id = $1',
+        [targetUserId]
+      );
+
+      const targetUser = targetUserResult.rows[0];
+
+      const assignedCards: { cardId: string; cardName: string; cardRarity: string; setName: string; quantity: number }[] = [];
 
       for (const card of cards) {
-        // Verificar que la carta existe y obtener su nombre
-        const cardResult = await client.query(
-          'SELECT id, name FROM sn_tcg_cards WHERE id = $1',
-          [card.cardId]
-        );
+        // Verificar que la carta existe y obtener su info completa
+        const cardResult = await client.query(`
+          SELECT c.id, c.name, c.rarity, s.name as set_name
+          FROM sn_tcg_cards c
+          LEFT JOIN sn_tcg_sets s ON c.set_id = s.id
+          WHERE c.id = $1
+        `, [card.cardId]);
 
         if (cardResult.rows.length === 0) {
           throw new Error(`Carta no encontrada: ${card.cardId}`);
         }
 
-        const cardName = cardResult.rows[0].name;
+        const cardData = cardResult.rows[0];
 
         // Insertar o actualizar en el inventario
         await client.query(`
@@ -66,19 +76,25 @@ export async function POST(req: NextRequest) {
 
         assignedCards.push({
           cardId: card.cardId,
-          cardName,
+          cardName: cardData.name,
+          cardRarity: cardData.rarity,
+          setName: cardData.set_name,
           quantity: card.quantity
         });
       }
 
-      // Registrar la transacción
+      // Registrar la transacción con detalles completos
       await client.query(`
         INSERT INTO sn_tcg_transactions (user_id, admin_id, action_type, action_data)
         VALUES ($1, $2, 'card_assignment', $3)
       `, [targetUserId, adminUser.id, JSON.stringify({
         cards: assignedCards,
         notes: notes || null,
-        totalCards: cards.reduce((sum, c) => sum + c.quantity, 0)
+        totalCards: cards.reduce((sum, c) => sum + c.quantity, 0),
+        // Info adicional para mostrar en logs
+        adminUsername: adminUser.username,
+        targetUsername: targetUser?.username,
+        targetEmail: targetUser?.email
       })]);
 
       await client.query('COMMIT');

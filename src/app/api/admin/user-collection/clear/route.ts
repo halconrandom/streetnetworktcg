@@ -13,12 +13,12 @@ export async function POST(req: NextRequest) {
 
     // Verificar que sea admin o mod
     const userResult = await query(
-      'SELECT role FROM sn_tcg_users WHERE clerk_id = $1',
+      'SELECT id, role, username FROM sn_tcg_users WHERE clerk_id = $1',
       [userId]
     );
 
-    const userRole = userResult.rows[0]?.role;
-    if (userRole !== 'admin' && userRole !== 'mod') {
+    const adminUser = userResult.rows[0];
+    if (!adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'mod')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -33,6 +33,27 @@ export async function POST(req: NextRequest) {
     try {
       await client.query('BEGIN');
 
+      // Obtener info del usuario destino
+      const targetUserResult = await client.query(
+        'SELECT id, username, email FROM sn_tcg_users WHERE id = $1',
+        [targetUserId]
+      );
+
+      const targetUser = targetUserResult.rows[0];
+
+      // Obtener conteos antes de borrar
+      const cardsCountResult = await client.query(
+        'SELECT COUNT(*) FROM sn_tcg_inventory WHERE user_id = $1',
+        [targetUserId]
+      );
+      const packsCountResult = await client.query(
+        'SELECT COUNT(*) FROM sn_tcg_user_packs WHERE user_id = $1 AND count > 0',
+        [targetUserId]
+      );
+
+      const totalCards = parseInt(cardsCountResult.rows[0].count);
+      const totalPacks = parseInt(packsCountResult.rows[0].count);
+
       // Eliminar todas las cartas del inventario
       await client.query(
         'DELETE FROM sn_tcg_inventory WHERE user_id = $1',
@@ -44,6 +65,19 @@ export async function POST(req: NextRequest) {
         'DELETE FROM sn_tcg_user_packs WHERE user_id = $1',
         [targetUserId]
       );
+
+      // Registrar la transacción
+      await client.query(`
+        INSERT INTO sn_tcg_transactions (user_id, admin_id, action_type, action_data)
+        VALUES ($1, $2, 'collection_cleared', $3)
+      `, [targetUserId, adminUser.id, JSON.stringify({
+        totalCardsDeleted: totalCards,
+        totalPacksDeleted: totalPacks,
+        // Info adicional para mostrar en logs
+        adminUsername: adminUser.username,
+        targetUsername: targetUser?.username,
+        targetEmail: targetUser?.email
+      })]);
 
       await client.query('COMMIT');
 

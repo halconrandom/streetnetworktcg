@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
     // Verificar que sea admin o mod
     const adminResult = await query(
-      'SELECT id, role FROM sn_tcg_users WHERE clerk_id = $1',
+      'SELECT id, role, username FROM sn_tcg_users WHERE clerk_id = $1',
       [userId]
     );
 
@@ -42,7 +42,15 @@ export async function POST(req: NextRequest) {
         throw new Error('Set no encontrado');
       }
 
-      const setName = setResult.rows[0].name;
+      const set = setResult.rows[0];
+
+      // Obtener info del usuario destino
+      const targetUserResult = await client.query(
+        'SELECT id, username, email FROM sn_tcg_users WHERE id = $1',
+        [targetUserId]
+      );
+
+      const targetUser = targetUserResult.rows[0];
 
       // Obtener cartas del set (con filtro de rareza opcional)
       let cardsQuery = 'SELECT id, name, rarity FROM sn_tcg_cards WHERE set_id = $1';
@@ -79,26 +87,31 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Registrar la transacción
+      // Registrar la transacción con detalles completos
       await client.query(`
         INSERT INTO sn_tcg_transactions (user_id, admin_id, action_type, action_data)
         VALUES ($1, $2, 'set_assignment', $3)
       `, [targetUserId, adminUser.id, JSON.stringify({
-        setId,
-        setName,
+        setId: set.id,
+        setName: set.name,
+        game: set.game,
         quantity,
         rarityFilter: rarityFilter || null,
         notes: notes || null,
         totalCards: cardsResult.rows.length,
-        totalQuantity: cardsResult.rows.length * quantity
+        totalQuantity: cardsResult.rows.length * quantity,
+        // Info adicional para mostrar en logs
+        adminUsername: adminUser.username,
+        targetUsername: targetUser?.username,
+        targetEmail: targetUser?.email
       })]);
 
       await client.query('COMMIT');
 
       return NextResponse.json({ 
         success: true, 
-        message: `Set "${setName}" asignado: ${cardsResult.rows.length} cartas x ${quantity} = ${cardsResult.rows.length * quantity} cartas totales`,
-        set: { id: setId, name: setName },
+        message: `Set "${set.name}" asignado: ${cardsResult.rows.length} cartas x ${quantity} = ${cardsResult.rows.length * quantity} cartas totales`,
+        set: { id: setId, name: set.name },
         cardsAssigned: cardsResult.rows.length,
         totalQuantity: cardsResult.rows.length * quantity
       });

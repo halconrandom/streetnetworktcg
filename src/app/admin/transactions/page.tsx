@@ -26,14 +26,24 @@ const navItems = [
 
 const actionTypeLabels: Record<string, string> = {
   pack_assignment: 'Asignación de Pack',
+  set_assignment: 'Asignación de Set',
+  card_assignment: 'Asignación de Cartas',
   role_change: 'Cambio de Rol',
   pack_opened: 'Pack Abierto',
+  collection_cleared: 'Colección Borrada',
+  card_removed: 'Carta Eliminada',
+  pack_removed: 'Pack Eliminado',
 };
 
 const actionTypeColors: Record<string, string> = {
   pack_assignment: 'bg-green-500/20 text-green-400 border-green-500/30',
+  set_assignment: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  card_assignment: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
   role_change: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   pack_opened: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  collection_cleared: 'bg-red-500/20 text-red-400 border-red-500/30',
+  card_removed: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  pack_removed: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
 };
 
 export default function AdminTransactionsPage() {
@@ -182,9 +192,14 @@ export default function AdminTransactionsPage() {
                     className="pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-red-600/50 appearance-none"
                   >
                     <option value="">Todas</option>
-                    <option value="pack_assignment">Asignaciones</option>
+                    <option value="pack_assignment">Asignación de Packs</option>
+                    <option value="set_assignment">Asignación de Sets</option>
+                    <option value="card_assignment">Asignación de Cartas</option>
                     <option value="role_change">Cambios de rol</option>
                     <option value="pack_opened">Packs abiertos</option>
+                    <option value="collection_cleared">Colecciones borradas</option>
+                    <option value="card_removed">Cartas eliminadas</option>
+                    <option value="pack_removed">Packs eliminados</option>
                   </select>
                 </div>
               </div>
@@ -224,23 +239,113 @@ export default function AdminTransactionsPage() {
                         </div>
                       </td>
                       <td className="p-4">
-                        <p className="text-sm text-zinc-300">
-                          {tx.action_type === 'pack_assignment' && (
-                            <>
-                              {tx.action_data.quantity as number} pack(s) asignado(s)
-                            </>
+                        <div className="text-sm text-zinc-300 space-y-1">
+                          {tx.action_type === 'pack_assignment' && (() => {
+                            const data = tx.action_data as { packName?: string; setName?: string; game?: string; quantity?: number };
+                            return (
+                              <>
+                                <p className="font-medium text-white">
+                                  {data.packName || 'Pack desconocido'}
+                                </p>
+                                <p className="text-zinc-400">
+                                  Set: <span className="text-amber-400">{data.setName || 'N/A'}</span>
+                                  {data.game && (
+                                    <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-zinc-700 text-zinc-300">
+                                      {data.game}
+                                    </span>
+                                  )}
+                                </p>
+                                <p>
+                                  <span className="text-green-400 font-medium">{data.quantity || 0}x</span>
+                                  <span className="text-zinc-500"> sobres asignados</span>
+                                </p>
+                              </>
+                            );
+                          })()}
+                          {tx.action_type === 'set_assignment' && (() => {
+                            const data = tx.action_data as { setName?: string; totalCards?: number; quantity?: number; totalQuantity?: number };
+                            return (
+                              <>
+                                <p className="font-medium text-white">
+                                  {data.setName}
+                                </p>
+                                <p>
+                                  <span className="text-green-400 font-medium">{data.totalCards || 0} cartas</span>
+                                  <span className="text-zinc-500"> x {data.quantity || 1} = </span>
+                                  <span className="text-amber-400 font-medium">{data.totalQuantity || 0} totales</span>
+                                </p>
+                              </>
+                            );
+                          })()}
+                          {tx.action_type === 'card_assignment' && (() => {
+                            const data = tx.action_data as { totalCards?: number; cards?: Array<{cardName: string; quantity: number}> };
+                            return (
+                              <>
+                                <p className="font-medium text-white">
+                                  {data.totalCards || 0} cartas asignadas
+                                </p>
+                                <p className="text-zinc-500 text-xs">
+                                  {data.cards?.slice(0, 3).map(c => c.cardName).join(', ')}
+                                  {(data.cards?.length || 0) > 3 && '...'}
+                                </p>
+                              </>
+                            );
+                          })()}
+                          {tx.action_type === 'role_change' && (() => {
+                            const data = tx.action_data as { newRole?: string };
+                            return (
+                              <p>
+                                Nuevo rol: <span className="text-amber-400 font-medium">{data.newRole}</span>
+                              </p>
+                            );
+                          })()}
+                          {tx.action_type === 'pack_opened' && (() => {
+                            const data = tx.action_data as { packName?: string; cardsObtained?: number };
+                            return (
+                              <>
+                                <p className="font-medium text-white">
+                                  {data.packName || 'Pack abierto'}
+                                </p>
+                                <p className="text-zinc-500">
+                                  {data.cardsObtained || 0} cartas obtenidas
+                                </p>
+                              </>
+                            );
+                          })()}
+                          {tx.action_type === 'collection_cleared' && (
+                            <p className="text-red-400">
+                              Colección eliminada completamente
+                            </p>
                           )}
-                          {tx.action_type === 'role_change' && (
-                            <>
-                              Nuevo rol: <span className="text-amber-400">{tx.action_data.newRole as string}</span>
-                            </>
-                          )}
-                          {tx.action_type === 'pack_opened' && (
-                            <>
-                              Pack abierto
-                            </>
-                          )}
-                        </p>
+                          {tx.action_type === 'card_removed' && (() => {
+                            const data = tx.action_data as { cardName?: string; quantity?: number };
+                            return (
+                              <>
+                                <p className="font-medium text-white">
+                                  {data.cardName || 'Carta eliminada'}
+                                </p>
+                                <p>
+                                  <span className="text-orange-400 font-medium">{data.quantity || 0}x</span>
+                                  <span className="text-zinc-500"> eliminadas</span>
+                                </p>
+                              </>
+                            );
+                          })()}
+                          {tx.action_type === 'pack_removed' && (() => {
+                            const data = tx.action_data as { packName?: string; quantity?: number };
+                            return (
+                              <>
+                                <p className="font-medium text-white">
+                                  {data.packName || 'Pack eliminado'}
+                                </p>
+                                <p>
+                                  <span className="text-amber-400 font-medium">{data.quantity || 0}x</span>
+                                  <span className="text-zinc-500"> eliminados</span>
+                                </p>
+                              </>
+                            );
+                          })()}
+                        </div>
                       </td>
                       <td className="p-4 text-zinc-400">
                         {tx.admin_name || '-'}

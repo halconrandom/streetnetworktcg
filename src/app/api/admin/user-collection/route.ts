@@ -123,12 +123,12 @@ export async function DELETE(req: NextRequest) {
 
     // Verificar que sea admin o mod
     const userResult = await query(
-      'SELECT role FROM sn_tcg_users WHERE clerk_id = $1',
+      'SELECT id, role, username FROM sn_tcg_users WHERE clerk_id = $1',
       [userId]
     );
 
-    const userRole = userResult.rows[0]?.role;
-    if (userRole !== 'admin' && userRole !== 'mod') {
+    const adminUser = userResult.rows[0];
+    if (!adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'mod')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -143,20 +143,33 @@ export async function DELETE(req: NextRequest) {
     try {
       await client.query('BEGIN');
 
-      // Verificar cantidad actual
-      const currentResult = await client.query(
-        'SELECT quantity FROM sn_tcg_inventory WHERE user_id = $1 AND card_id = $2',
-        [targetUserId, cardId]
-      );
+      // Obtener info de la carta y usuario
+      const cardInfoResult = await client.query(`
+        SELECT c.id, c.name, c.rarity, s.name as set_name, s.game, i.quantity as current_quantity
+        FROM sn_tcg_inventory i
+        JOIN sn_tcg_cards c ON i.card_id = c.id
+        LEFT JOIN sn_tcg_sets s ON c.set_id = s.id
+        WHERE i.user_id = $1 AND i.card_id = $2
+      `, [targetUserId, cardId]);
 
-      if (currentResult.rows.length === 0) {
+      if (cardInfoResult.rows.length === 0) {
         throw new Error('El usuario no tiene esta carta');
       }
 
-      const currentQty = currentResult.rows[0].quantity;
+      const cardInfo = cardInfoResult.rows[0];
+      const currentQty = cardInfo.current_quantity;
+
       if (quantity > currentQty) {
         throw new Error(`El usuario solo tiene ${currentQty} de esta carta`);
       }
+
+      // Obtener info del usuario destino
+      const targetUserResult = await client.query(
+        'SELECT id, username, email FROM sn_tcg_users WHERE id = $1',
+        [targetUserId]
+      );
+
+      const targetUser = targetUserResult.rows[0];
 
       // Actualizar o eliminar
       if (quantity >= currentQty) {
@@ -170,6 +183,25 @@ export async function DELETE(req: NextRequest) {
           [quantity, targetUserId, cardId]
         );
       }
+
+      // Registrar la transacción
+      await client.query(`
+        INSERT INTO sn_tcg_transactions (user_id, admin_id, action_type, action_data)
+        VALUES ($1, $2, 'card_removed', $3)
+      `, [targetUserId, adminUser.id, JSON.stringify({
+        cardId: cardInfo.id,
+        cardName: cardInfo.name,
+        cardRarity: cardInfo.rarity,
+        setName: cardInfo.set_name,
+        game: cardInfo.game,
+        quantity,
+        previousQuantity: currentQty,
+        remainingQuantity: Math.max(0, currentQty - quantity),
+        // Info adicional para mostrar en logs
+        adminUsername: adminUser.username,
+        targetUsername: targetUser?.username,
+        targetEmail: targetUser?.email
+      })]);
 
       await client.query('COMMIT');
 
