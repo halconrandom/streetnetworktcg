@@ -136,7 +136,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
 
                 {user.inventory.length === 0 && (
                   <div className="col-span-3 py-12 text-center border border-dashed border-white/10 rounded-3xl">
-                    <p className="text-zinc-500">No packs in inventory. Visit the store to buy some!</p>
+                    <p className="text-zinc-500">No packs in inventory. Ask an admin to assign you some packs!</p>
                   </div>
                 )}
               </div>

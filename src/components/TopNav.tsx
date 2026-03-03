@@ -1,29 +1,27 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Gamepad2, Library, PackageOpen, Store, Search, Bell, Shield } from "lucide-react";
+import { Gamepad2, Library, PackageOpen, Search, Bell, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import Link from "next/link";
 
-type ViewType = 'dashboard' | 'collection' | 'packs' | 'store';
+type ViewType = 'dashboard' | 'collection' | 'packs';
 
 const navItems: { id: ViewType; label: string; icon: typeof Gamepad2 }[] = [
   { id: "dashboard", label: "Dashboard", icon: Gamepad2 },
   { id: "collection", label: "Collection", icon: Library },
   { id: "packs", label: "Open Packs", icon: PackageOpen },
-  { id: "store", label: "Store", icon: Store },
 ];
 
 interface TopNavProps {
   activeTab: ViewType;
   setActiveTab: (id: ViewType) => void;
   username?: string;
-  balance?: number;
   role?: string;
 }
 
-export function TopNav({ activeTab, setActiveTab, username = "Player", balance = 0, role = "user" }: TopNavProps) {
+export function TopNav({ activeTab, setActiveTab, username = "Player", role = "user" }: TopNavProps) {
   const isAdmin = role === 'admin' || role === 'mod';
   
   return (
@@ -106,7 +104,6 @@ export function TopNav({ activeTab, setActiveTab, username = "Player", balance =
           <div className="flex items-center gap-3 pl-2">
             <div className="flex flex-col items-end">
               <span className="text-sm font-semibold text-white">{username}</span>
-              <span className="text-xs font-medium text-amber-500">{balance.toLocaleString()} CR</span>
             </div>
             <UserButton 
               appearance={{

@@ -12,7 +12,6 @@ interface User {
   username: string;
   email: string;
   role: string;
-  balance: number;
   created_at: string;
   cards_count: string;
   packs_available: string;

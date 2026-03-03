@@ -4,18 +4,17 @@ import { ReactNode } from "react";
 import { TopNav } from "./TopNav";
 import { motion, AnimatePresence } from "motion/react";
 
-type ViewType = 'dashboard' | 'collection' | 'packs' | 'store';
+type ViewType = 'dashboard' | 'collection' | 'packs';
 
 interface LayoutProps {
   children: ReactNode;
   activeTab: ViewType;
   setActiveTab: (id: ViewType) => void;
   username?: string;
-  balance?: number;
   role?: string;
 }
 
-export function Layout({ children, activeTab, setActiveTab, username, balance, role }: LayoutProps) {
+export function Layout({ children, activeTab, setActiveTab, username, role }: LayoutProps) {
   return (
     <div className="min-h-screen bg-[#080808] text-zinc-100 font-sans selection:bg-red-600/30 selection:text-red-200 flex flex-col">
       {/* Background Effects */}
@@ -25,7 +24,7 @@ export function Layout({ children, activeTab, setActiveTab, username, balance, r
       </div>
 
       <div className="relative z-10 flex-1 flex flex-col w-full max-w-[1600px] mx-auto">
-        <TopNav activeTab={activeTab} setActiveTab={setActiveTab} username={username} balance={balance} role={role} />
+        <TopNav activeTab={activeTab} setActiveTab={setActiveTab} username={username} role={role} />
         
         <main className="flex-1 px-8 pb-8 flex flex-col relative">
           <AnimatePresence mode="wait">

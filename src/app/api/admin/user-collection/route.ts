@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     // Obtener información del usuario
     const userInfoResult = await query(`
-      SELECT id, username, email, role, balance, created_at
+      SELECT id, username, email, role, created_at
       FROM sn_tcg_users
       WHERE id = $1
     `, [targetUserId]);

@@ -51,7 +51,6 @@ export async function GET() {
                 clerk_id VARCHAR(255) UNIQUE NOT NULL,
                 username VARCHAR(100) NOT NULL,
                 email VARCHAR(255) UNIQUE NOT NULL,
-                balance DECIMAL(10, 2) DEFAULT 2500,
                 role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )

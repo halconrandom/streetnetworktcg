@@ -13,7 +13,6 @@ interface UserData {
     username: string;
     email: string;
     role: string;
-    balance: number;
     created_at: string;
   };
   inventory: Card[];
@@ -186,30 +185,24 @@ export default function UserCollectionPage({ params }: { params: { id: string } 
 
             {/* User Header */}
             <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 mb-8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-2xl font-bold">
-                    {data.user.username.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-white">{data.user.username}</h1>
-                    <p className="text-zinc-400">{data.user.email}</p>
-                    <span
-                      className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                        data.user.role === 'admin'
-                          ? 'bg-red-500/20 text-red-400'
-                          : data.user.role === 'mod'
-                          ? 'bg-amber-500/20 text-amber-400'
-                          : 'bg-zinc-500/20 text-zinc-400'
-                      }`}
-                    >
-                      {data.user.role}
-                    </span>
-                  </div>
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-2xl font-bold">
+                  {data.user.username.charAt(0).toUpperCase()}
                 </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-amber-500">{data.user.balance.toLocaleString()} CR</p>
-                  <p className="text-sm text-zinc-500">Balance</p>
+                <div>
+                  <h1 className="text-2xl font-bold text-white">{data.user.username}</h1>
+                  <p className="text-zinc-400">{data.user.email}</p>
+                  <span
+                    className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                      data.user.role === 'admin'
+                        ? 'bg-red-500/20 text-red-400'
+                        : data.user.role === 'mod'
+                        ? 'bg-amber-500/20 text-amber-400'
+                        : 'bg-zinc-500/20 text-zinc-400'
+                    }`}
+                  >
+                    {data.user.role}
+                  </span>
                 </div>
               </div>
             </div>

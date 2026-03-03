@@ -30,7 +30,6 @@ export async function GET(req: NextRequest) {
         u.username,
         u.email,
         u.role,
-        u.balance,
         u.created_at,
         (SELECT COUNT(*) FROM sn_tcg_inventory WHERE user_id = u.id) as cards_count,
         (SELECT COUNT(*) FROM sn_tcg_user_packs WHERE user_id = u.id AND count > 0) as packs_available

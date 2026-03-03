@@ -108,7 +108,6 @@ export interface UserProfile {
   id: string;
   username: string;
   avatar: string | null;
-  balance: number;
   inventory: InventoryItem[];
   role?: 'user' | 'mod' | 'admin';
 }

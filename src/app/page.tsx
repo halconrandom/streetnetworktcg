@@ -5,12 +5,11 @@ import { Layout } from '@/components/Layout';
 import { Dashboard } from '@/components/Dashboard';
 import { Collection } from '@/components/Collection';
 import { PackOpener } from '@/components/PackOpener';
-import { Store } from '@/components/Store';
-import { UserProfile, Card, Pack } from '@/lib/types';
+import { UserProfile, Card } from '@/lib/types';
 import { SignedIn, SignedOut, SignIn } from '@clerk/nextjs';
 
 export default function Home() {
-  const [view, setView] = useState<'dashboard' | 'collection' | 'packs' | 'store'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'collection' | 'packs'>('dashboard');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [collection, setCollection] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,19 +45,6 @@ export default function Home() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const handleBuy = async (pack: Pack) => {
-    try {
-      const res = await fetch('/api/buy-pack', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packId: pack.id, price: pack.price })
-      });
-      if (res.ok) fetchUser();
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const handleOpen = async (packId: string) => {
     try {
@@ -128,11 +114,10 @@ export default function Home() {
 
       <SignedIn>
         {user && (
-          <Layout activeTab={view} setActiveTab={setView} username={user.username} balance={user.balance} role={user.role}>
+          <Layout activeTab={view} setActiveTab={setView} username={user.username} role={user.role}>
             {view === 'dashboard' && <Dashboard onNavigate={setView} />}
             {view === 'collection' && <Collection collection={collection} />}
             {view === 'packs' && <PackOpener user={user} onOpen={handleOpen} />}
-            {view === 'store' && <Store onBuy={handleBuy} balance={user.balance} />}
           </Layout>
         )}
       </SignedIn>

@@ -6,7 +6,7 @@ import { Badge } from "./ui/Badge";
 import { Play, TrendingUp, Package, Sparkles, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 
-type ViewType = 'dashboard' | 'collection' | 'packs' | 'store';
+type ViewType = 'dashboard' | 'collection' | 'packs';
 
 interface DashboardProps {
   onNavigate?: (tab: ViewType) => void;
@@ -126,7 +126,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         {/* Collection Stats */}
         <GlassPanel className="p-6 flex flex-col gap-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-white">Collection Value</h3>
+            <h3 className="text-lg font-bold text-white">Collection Stats</h3>
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <TrendingUp className="h-4 w-4" />
             </Button>
@@ -141,8 +141,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 <circle cx="96" cy="96" r="80" fill="none" stroke="#f59e0b" strokeWidth="16" strokeDasharray="502" strokeDashoffset="400" className="drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-sm text-zinc-400 font-medium">Est. Value</span>
-                <span className="text-3xl font-black text-white mt-1">$4,250</span>
+                <span className="text-sm text-zinc-400 font-medium">Total Cards</span>
+                <span className="text-3xl font-black text-white mt-1">1,247</span>
               </div>
             </div>
           </div>
@@ -181,7 +181,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <div className="p-4 rounded-2xl bg-gradient-to-br from-red-600/20 to-red-900/20 border border-red-500/30">
               <h4 className="font-bold text-red-400 mb-1">Admin Gift Received!</h4>
               <p className="text-sm text-zinc-300 leading-relaxed">
-                You have received 2x "Legend of Blue Eyes" packs from the server admin for your recent purchase.
+                You have received 2x "Legend of Blue Eyes" packs from the server admin for your recent activity.
               </p>
               <Button variant="primary" size="sm" className="mt-3 w-full">Claim Packs</Button>
             </div>
