@@ -442,4 +442,16 @@ export default function AdminSetsPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-
+                  <div className="text-center py-12">
+                    <Layers className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+                    <p className="text-zinc-500">No hay cartas en este set</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
