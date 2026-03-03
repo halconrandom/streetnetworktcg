@@ -26,7 +26,6 @@ export async function GET() {
       SELECT 
         p.id,
         p.name,
-        p.price,
         p.card_count,
         p.description,
         p.image_url,
@@ -34,6 +33,7 @@ export async function GET() {
         p.created_at,
         s.id as set_id,
         s.name as set_name,
+        s.logo_url as set_logo,
         s.game,
         (SELECT COUNT(*) FROM sn_tcg_cards c WHERE c.set_id = p.set_id) as cards_in_set
       FROM sn_tcg_packs p

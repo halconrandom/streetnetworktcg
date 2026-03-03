@@ -2,20 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Package, Plus, Edit2, Trash2, Shield, Users, Layers, UserCog } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, Shield, Users, Layers, UserCog, Eye, X, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 interface Pack {
   id: string;
   name: string;
-  price: number;
   card_count: number;
   description: string | null;
   image_url: string | null;
   is_custom: boolean;
   set_id: string | null;
   set_name: string | null;
+  set_logo: string | null;
   game: string | null;
   cards_in_set: string;
 }
@@ -24,6 +25,15 @@ interface Set {
   id: string;
   name: string;
   game: string;
+  logo_url: string | null;
+}
+
+interface Card {
+  id: string;
+  name: string;
+  number: string;
+  rarity: string | null;
+  image_url: string | null;
 }
 
 const navItems = [
@@ -39,11 +49,14 @@ export default function AdminPacksPage() {
   const [sets, setSets] = useState<Set[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showCardsModal, setShowCardsModal] = useState(false);
+  const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
+  const [cards, setCards] = useState<Card[]>([]);
+  const [loadingCards, setLoadingCards] = useState(false);
   const [editingPack, setEditingPack] = useState<Pack | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     setId: '',
-    price: 0,
     cardCount: 5,
     description: '',
     imageUrl: '',
@@ -77,6 +90,32 @@ export default function AdminPacksPage() {
     }
   };
 
+  const fetchCards = async (setId: string) => {
+    setLoadingCards(true);
+    try {
+      const res = await fetch(`/api/admin/sets/${setId}/cards`);
+      if (res.ok) {
+        const data = await res.json();
+        setCards(data.cards || []);
+      }
+    } catch (err) {
+      console.error(err);
+      setCards([]);
+    } finally {
+      setLoadingCards(false);
+    }
+  };
+
+  const handleViewCards = (pack: Pack) => {
+    if (!pack.set_id) {
+      alert('Este pack no tiene un set asignado');
+      return;
+    }
+    setSelectedPack(pack);
+    setShowCardsModal(true);
+    fetchCards(pack.set_id);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -98,7 +137,7 @@ export default function AdminPacksPage() {
 
       setShowModal(false);
       setEditingPack(null);
-      setFormData({ name: '', setId: '', price: 0, cardCount: 5, description: '', imageUrl: '' });
+      setFormData({ name: '', setId: '', cardCount: 5, description: '', imageUrl: '' });
       fetchData();
     } catch (err) {
       console.error(err);
@@ -130,7 +169,6 @@ export default function AdminPacksPage() {
     setFormData({
       name: pack.name,
       setId: pack.set_id || '',
-      price: pack.price,
       cardCount: pack.card_count,
       description: pack.description || '',
       imageUrl: pack.image_url || '',
@@ -217,7 +255,7 @@ export default function AdminPacksPage() {
               <button
                 onClick={() => {
                   setEditingPack(null);
-                  setFormData({ name: '', setId: '', price: 0, cardCount: 5, description: '', imageUrl: '' });
+                  setFormData({ name: '', setId: '', cardCount: 5, description: '', imageUrl: '' });
                   setShowModal(true);
                 }}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 rounded-xl text-white font-medium hover:bg-red-700 transition-colors"
@@ -236,6 +274,19 @@ export default function AdminPacksPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden"
                 >
+                  {/* Pack Image */}
+                  {((pack.image_url || pack.set_logo)) && (
+                    <div className="relative h-40 bg-gradient-to-br from-zinc-900 to-zinc-800">
+                      <Image
+                        src={pack.image_url || pack.set_logo || ''}
+                        alt={pack.name}
+                        fill
+                        className="object-contain p-4"
+                        unoptimized
+                      />
+                    </div>
+                  )}
+                  
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div>
@@ -251,12 +302,12 @@ export default function AdminPacksPage() {
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div className="bg-white/[0.02] rounded-xl p-3">
-                        <p className="text-xs text-zinc-500 mb-1">Precio</p>
-                        <p className="text-lg font-bold text-amber-500">{pack.price.toLocaleString()} CR</p>
+                        <p className="text-xs text-zinc-500 mb-1">Cartas por sobre</p>
+                        <p className="text-lg font-bold text-white">{pack.card_count}</p>
                       </div>
                       <div className="bg-white/[0.02] rounded-xl p-3">
-                        <p className="text-xs text-zinc-500 mb-1">Cartas</p>
-                        <p className="text-lg font-bold text-white">{pack.card_count}</p>
+                        <p className="text-xs text-zinc-500 mb-1">En el set</p>
+                        <p className="text-lg font-bold text-zinc-300">{pack.cards_in_set}</p>
                       </div>
                     </div>
 
@@ -265,9 +316,13 @@ export default function AdminPacksPage() {
                     )}
 
                     <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                      <span className="text-xs text-zinc-500">
-                        {pack.cards_in_set} cartas en el set
-                      </span>
+                      <button
+                        onClick={() => handleViewCards(pack)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors text-sm"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Ver Cartas
+                      </button>
                       <div className="flex gap-2">
                         <button
                           onClick={() => openEditModal(pack)}
@@ -291,7 +346,7 @@ export default function AdminPacksPage() {
         </main>
       </div>
 
-      {/* Modal */}
+      {/* Modal Crear/Editar */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <motion.div
@@ -331,27 +386,26 @@ export default function AdminPacksPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-zinc-400 mb-1">Precio (CR)</label>
-                  <input
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-red-600/50"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-zinc-400 mb-1">Cartas por pack</label>
-                  <input
-                    type="number"
-                    value={formData.cardCount}
-                    onChange={(e) => setFormData({ ...formData, cardCount: parseInt(e.target.value) || 5 })}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-red-600/50"
-                    required
-                  />
-                </div>
+              <div>
+                <label className="block text-sm text-zinc-400 mb-1">Cartas por sobre</label>
+                <input
+                  type="number"
+                  value={formData.cardCount}
+                  onChange={(e) => setFormData({ ...formData, cardCount: parseInt(e.target.value) || 5 })}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-red-600/50"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-zinc-400 mb-1">URL de imagen (opcional)</label>
+                <input
+                  type="text"
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  placeholder="https://..."
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-red-600/50"
+                />
               </div>
 
               <div>
@@ -380,6 +434,79 @@ export default function AdminPacksPage() {
                 </button>
               </div>
             </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal Ver Cartas */}
+      {showCardsModal && selectedPack && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden"
+          >
+            <div className="flex items-center justify-between p-6 border-b border-white/5">
+              <div>
+                <h2 className="text-xl font-bold text-white">Cartas de {selectedPack.name}</h2>
+                <p className="text-sm text-zinc-500">{selectedPack.set_name} • {cards.length} cartas</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowCardsModal(false);
+                  setSelectedPack(null);
+                  setCards([]);
+                }}
+                className="p-2 bg-white/5 border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {loadingCards ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : cards.length === 0 ? (
+                <div className="text-center py-12">
+                  <ImageIcon className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+                  <p className="text-zinc-500">No se encontraron cartas</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {cards.map((card) => (
+                    <div
+                      key={card.id}
+                      className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden group hover:border-white/10 transition-colors"
+                    >
+                      <div className="relative aspect-[2.5/3.5] bg-gradient-to-br from-zinc-900 to-zinc-800">
+                        {card.image_url ? (
+                          <Image
+                            src={card.image_url}
+                            alt={card.name}
+                            fill
+                            className="object-contain p-2 group-hover:scale-105 transition-transform"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <ImageIcon className="h-8 w-8 text-zinc-600" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2">
+                        <p className="text-xs font-medium text-white truncate">{card.name}</p>
+                        <p className="text-xs text-zinc-500">#{card.number}</p>
+                        {card.rarity && (
+                          <p className="text-xs text-zinc-400 truncate mt-1">{card.rarity}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </motion.div>
         </div>
       )}
