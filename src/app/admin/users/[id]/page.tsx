@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Shield, Users, Package, Layers, UserCog, Image } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowLeft, Shield, Users, Package, Layers, UserCog, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -301,14 +302,16 @@ export default function UserCollectionPage({ params }: { params: { id: string } 
                     >
                       <div className="aspect-[3/4] relative">
                         {card.image_url ? (
-                          <img
+                          <Image
                             src={card.image_url}
                             alt={card.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
+                            unoptimized
                           />
                         ) : (
                           <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                            <Image className="h-8 w-8 text-zinc-600" />
+                            <ImageIcon className="h-8 w-8 text-zinc-600" />
                           </div>
                         )}
                         {card.quantity > 1 && (
@@ -333,7 +336,7 @@ export default function UserCollectionPage({ params }: { params: { id: string } 
                 </div>
               ) : (
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-8 text-center">
-                  <Image className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+                  <ImageIcon className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
                   <p className="text-zinc-500">Este usuario no tiene cartas</p>
                 </div>
               )}

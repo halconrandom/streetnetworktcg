@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { GlassPanel } from "./ui/GlassPanel";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
@@ -176,11 +177,12 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
                     className="relative w-48 h-72 rounded-2xl overflow-hidden group cursor-pointer"
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(card.game)} opacity-40 group-hover:opacity-60 transition-opacity`} />
-                    <img 
+                    <Image 
                       src={card.imageUrl} 
                       alt={card.name}
-                      className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-50"
-                      referrerPolicy="no-referrer"
+                      fill
+                      className="object-cover mix-blend-overlay opacity-50"
+                      unoptimized
                     />
                     <div className="absolute inset-0 border-2 border-white/20 rounded-2xl group-hover:border-white/50 transition-colors" />
                     

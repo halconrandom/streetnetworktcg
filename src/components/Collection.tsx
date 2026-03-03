@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { GlassPanel } from "./ui/GlassPanel";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
@@ -89,11 +90,12 @@ export function Collection({ collection }: CollectionProps) {
               >
                 {/* Card Background/Image */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${getCardColor(card.game)} opacity-20 group-hover:opacity-40 transition-opacity duration-500`} />
-                <img 
+                <Image 
                   src={card.imageUrl} 
                   alt={card.name}
-                  className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-50 group-hover:scale-110 transition-transform duration-700"
-                  referrerPolicy="no-referrer"
+                  fill
+                  className="object-cover mix-blend-overlay opacity-50 group-hover:scale-110 transition-transform duration-700"
+                  unoptimized
                 />
                 
                 {/* Card Border/Glass */}
