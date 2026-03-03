@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
-import { Layers, ChevronDown, Shield, Users, Package, UserCog } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Layers, ChevronDown, Shield, Users, Package, UserCog, X, Image, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -28,6 +28,16 @@ interface RarityConfig {
   isGuaranteed: boolean;
 }
 
+interface Card {
+  id: string;
+  name: string;
+  rarity: string;
+  rarity_slug: string | null;
+  image_url: string | null;
+  number: string | null;
+  supertype: string | null;
+}
+
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Shield, href: '/admin' },
   { id: 'users', label: 'Usuarios', icon: Users, href: '/admin/users' },
@@ -42,6 +52,12 @@ export default function AdminSetsPage() {
   const [expandedSet, setExpandedSet] = useState<string | null>(null);
   const [rarityConfig, setRarityConfig] = useState<RarityConfig[]>([]);
   const [gameFilter, setGameFilter] = useState<string>('');
+  const [cardsModal, setCardsModal] = useState<{ open: boolean; set: Set | null; cards: Card[]; loading: boolean }>({
+    open: false,
+    set: null,
+    cards: [],
+    loading: false,
+  });
   const pathname = usePathname();
 
   useEffect(() => {
@@ -72,6 +88,19 @@ export default function AdminSetsPage() {
     }
   };
 
+  const fetchCards = async (setId: string) => {
+    setCardsModal(prev => ({ ...prev, loading: true }));
+    try {
+      const res = await fetch(`/api/admin/sets?setId=${setId}`);
+      if (!res.ok) throw new Error('Error fetching cards');
+      const data = await res.json();
+      setCardsModal(prev => ({ ...prev, cards: data.cards || [], loading: false }));
+    } catch (err) {
+      console.error(err);
+      setCardsModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   const handleExpand = (setId: string) => {
     if (expandedSet === setId) {
       setExpandedSet(null);
@@ -79,6 +108,15 @@ export default function AdminSetsPage() {
       setExpandedSet(setId);
       fetchRarityConfig(setId);
     }
+  };
+
+  const openCardsModal = (set: Set) => {
+    setCardsModal({ open: true, set, cards: [], loading: true });
+    fetchCards(set.id);
+  };
+
+  const closeCardsModal = () => {
+    setCardsModal({ open: false, set: null, cards: [], loading: false });
   };
 
   const getGameBadge = (game: string) => {
@@ -92,6 +130,28 @@ export default function AdminSetsPage() {
       default:
         return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
     }
+  };
+
+  const getRarityBadge = (rarity: string) => {
+    const rarityColors: Record<string, string> = {
+      'Common': 'bg-zinc-500/20 text-zinc-400',
+      'Uncommon': 'bg-green-500/20 text-green-400',
+      'Rare': 'bg-blue-500/20 text-blue-400',
+      'Rare Holo': 'bg-cyan-500/20 text-cyan-400',
+      'Ultra Rare': 'bg-purple-500/20 text-purple-400',
+      'Illustration Rare': 'bg-pink-500/20 text-pink-400',
+      'Special Illustration Rare': 'bg-rose-500/20 text-rose-400',
+      'Hyper Rare': 'bg-amber-500/20 text-amber-400',
+      'Secret Rare': 'bg-red-500/20 text-red-400',
+    };
+    return rarityColors[rarity] || 'bg-zinc-500/20 text-zinc-400';
+  };
+
+  // Fix logo URL - add .png extension if missing
+  const getLogoUrl = (url: string | null) => {
+    if (!url) return null;
+    if (url.endsWith('.png') || url.endsWith('.jpg') || url.endsWith('.webp')) return url;
+    return `${url}.png`;
   };
 
   const filteredSets = gameFilter
@@ -195,85 +255,191 @@ export default function AdminSetsPage() {
                 </h2>
 
                 <div className="space-y-3">
-                  {gameSets.map((set) => (
-                    <motion.div
-                      key={set.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden"
-                    >
-                      <button
-                        onClick={() => handleExpand(set.id)}
-                        className="w-full p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                  {gameSets.map((set) => {
+                    const logoUrl = getLogoUrl(set.logo_url);
+                    return (
+                      <motion.div
+                        key={set.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden"
                       >
-                        <div className="flex items-center gap-4">
-                          {set.logo_url && (
-                            <img
-                              src={set.logo_url}
-                              alt={set.name}
-                              className="h-10 w-auto object-contain"
-                            />
-                          )}
-                          <div className="text-left">
-                            <h3 className="font-medium text-white">{set.name}</h3>
-                            <p className="text-sm text-zinc-500">
-                              {set.series} {set.release_date ? `• ${new Date(set.release_date).getFullYear()}` : ''}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-6">
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-white">{set.cards_count} cartas</p>
-                            <p className="text-xs text-zinc-500">{set.packs_count} packs</p>
-                          </div>
-                          <ChevronDown
-                            className={`h-5 w-5 text-zinc-400 transition-transform ${
-                              expandedSet === set.id ? 'rotate-180' : ''
-                            }`}
-                          />
-                        </div>
-                      </button>
-
-                      {expandedSet === set.id && (
-                        <div className="border-t border-white/5 p-4">
-                          <h4 className="text-sm font-medium text-zinc-400 mb-3">Configuración de Rarezas</h4>
-                          {rarityConfig.length > 0 ? (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                              {rarityConfig.map((slot) => (
-                                <div
-                                  key={slot.id}
-                                  className="bg-white/[0.02] rounded-lg p-3 border border-white/5"
-                                >
-                                  <p className="text-sm font-medium text-white">{slot.rarity}</p>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-xs text-zinc-500">
-                                      {(slot.weight * 100).toFixed(1)}%
-                                    </span>
-                                    {slot.isGuaranteed && (
-                                      <span className="text-xs text-amber-500">Garantizado</span>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-zinc-500 mt-1">
-                                    {slot.minPerPack}-{slot.maxPerPack} por pack
-                                  </p>
-                                </div>
-                              ))}
+                        <div className="p-4 flex items-center justify-between">
+                          <button
+                            onClick={() => handleExpand(set.id)}
+                            className="flex items-center gap-4 flex-1 text-left hover:opacity-80 transition-opacity"
+                          >
+                            {logoUrl ? (
+                              <img
+                                src={logoUrl}
+                                alt={set.name}
+                                className="h-10 w-auto object-contain"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="h-10 w-16 bg-white/5 rounded flex items-center justify-center">
+                                <Image className="h-5 w-5 text-zinc-600" />
+                              </div>
+                            )}
+                            <div>
+                              <h3 className="font-medium text-white">{set.name}</h3>
+                              <p className="text-sm text-zinc-500">
+                                {set.series} {set.release_date ? `• ${new Date(set.release_date).getFullYear()}` : ''}
+                              </p>
                             </div>
-                          ) : (
-                            <p className="text-sm text-zinc-500">
-                              Sin configuración de rarezas
-                            </p>
-                          )}
+                          </button>
+                          
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-white">{set.cards_count} cartas</p>
+                              <p className="text-xs text-zinc-500">{set.packs_count} packs</p>
+                            </div>
+                            
+                            {/* Ver cartas button */}
+                            <button
+                              onClick={() => openCardsModal(set)}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-red-600/10 border border-red-600/20 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-600/20 transition-colors"
+                            >
+                              <Eye className="h-4 w-4" />
+                              Ver cartas
+                            </button>
+                            
+                            <button onClick={() => handleExpand(set.id)}>
+                              <ChevronDown
+                                className={`h-5 w-5 text-zinc-400 transition-transform ${
+                                  expandedSet === set.id ? 'rotate-180' : ''
+                                }`}
+                              />
+                            </button>
+                          </div>
                         </div>
-                      )}
-                    </motion.div>
-                  ))}
+
+                        <AnimatePresence>
+                          {expandedSet === set.id && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="border-t border-white/5 p-4">
+                                <h4 className="text-sm font-medium text-zinc-400 mb-3">Configuración de Rarezas</h4>
+                                {rarityConfig.length > 0 ? (
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    {rarityConfig.map((slot) => (
+                                      <div
+                                        key={slot.id}
+                                        className="bg-white/[0.02] rounded-lg p-3 border border-white/5"
+                                      >
+                                        <p className="text-sm font-medium text-white">{slot.rarity}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <span className="text-xs text-zinc-500">
+                                            {(slot.weight * 100).toFixed(1)}%
+                                          </span>
+                                          {slot.isGuaranteed && (
+                                            <span className="text-xs text-amber-500">Garantizado</span>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-zinc-500 mt-1">
+                                          {slot.minPerPack}-{slot.maxPerPack} por pack
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-zinc-500">
+                                    Sin configuración de rarezas
+                                  </p>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
           </motion.div>
         </main>
       </div>
-    </div>
-  );
-}
+
+      {/* Cards Modal */}
+      <AnimatePresence>
+        {cardsModal.open && cardsModal.set && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={closeCardsModal}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-white/5">
+                <div>
+                  <h2 className="text-xl font-bold text-white">{cardsModal.set.name}</h2>
+                  <p className="text-sm text-zinc-500">
+                    {cardsModal.set.game} • {cardsModal.cards.length} cartas
+                  </p>
+                </div>
+                <button
+                  onClick={closeCardsModal}
+                  className="p-2 bg-white/5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)]">
+                {cardsModal.loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : cardsModal.cards.length > 0 ? (
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {cardsModal.cards.map((card) => (
+                      <div
+                        key={card.id}
+                        className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden group"
+                      >
+                        <div className="aspect-[3/4] relative bg-zinc-800">
+                          {card.image_url ? (
+                            <img
+                              src={card.image_url}
+                              alt={card.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Image className="h-8 w-8 text-zinc-600" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-2">
+                          <p className="text-xs font-medium text-white truncate">{card.name}</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${getRarityBadge(card.rarity || card.rarity_slug || 'Common')}`}>
+                              {(card.rarity || card.rarity_slug || 'Common').substring(0, 10)}
+                            </span>
+                            {card.number && (
+                              <span className="text-[10px] text-zinc-500">#{card.number}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-
