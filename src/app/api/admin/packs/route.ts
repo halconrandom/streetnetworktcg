@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { query, getClient } from '@/lib/db';
 
 // GET - Listar todos los packs con configuración
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();
     
@@ -22,26 +22,62 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const result = await query(`
-      SELECT 
-        p.id,
-        p.name,
-        p.card_count,
-        p.description,
-        p.image_url,
-        p.is_custom,
-        p.created_at,
-        s.id as set_id,
-        s.name as set_name,
-        s.logo_url as set_logo,
-        s.tcg_id as set_tcg_id,
-        s.game,
-        s.series,
-        (SELECT COUNT(*) FROM sn_tcg_cards c WHERE c.set_id = p.set_id) as cards_in_set
-      FROM sn_tcg_packs p
-      LEFT JOIN sn_tcg_sets s ON p.set_id = s.id
-      ORDER BY s.game, s.series, p.name
-    `);
+    const { searchParams } = new URL(req.url);
+    const pokemonSearch = searchParams.get('pokemon');
+
+    let result;
+
+    if (pokemonSearch && pokemonSearch.length >= 2) {
+      // Buscar packs que contienen cartas del Pokémon especificado
+      result = await query(`
+        SELECT DISTINCT
+          p.id,
+          p.name,
+          p.card_count,
+          p.description,
+          p.image_url,
+          p.is_custom,
+          p.created_at,
+          s.id as set_id,
+          s.name as set_name,
+          s.logo_url as set_logo,
+          s.tcg_id as set_tcg_id,
+          s.game,
+          s.series,
+          (SELECT COUNT(*) FROM sn_tcg_cards c WHERE c.set_id = p.set_id) as cards_in_set,
+          (SELECT COUNT(*) FROM sn_tcg_cards c WHERE c.set_id = p.set_id AND LOWER(c.name) LIKE LOWER($1)) as pokemon_count
+        FROM sn_tcg_packs p
+        LEFT JOIN sn_tcg_sets s ON p.set_id = s.id
+        WHERE EXISTS (
+          SELECT 1 FROM sn_tcg_cards c 
+          WHERE c.set_id = p.set_id 
+          AND LOWER(c.name) LIKE LOWER($1)
+        )
+        ORDER BY s.game, s.series, p.name
+      `, [`%${pokemonSearch}%`]);
+    } else {
+      // Listar todos los packs
+      result = await query(`
+        SELECT 
+          p.id,
+          p.name,
+          p.card_count,
+          p.description,
+          p.image_url,
+          p.is_custom,
+          p.created_at,
+          s.id as set_id,
+          s.name as set_name,
+          s.logo_url as set_logo,
+          s.tcg_id as set_tcg_id,
+          s.game,
+          s.series,
+          (SELECT COUNT(*) FROM sn_tcg_cards c WHERE c.set_id = p.set_id) as cards_in_set
+        FROM sn_tcg_packs p
+        LEFT JOIN sn_tcg_sets s ON p.set_id = s.id
+        ORDER BY s.game, s.series, p.name
+      `);
+    }
 
     return NextResponse.json({ packs: result.rows });
   } catch (err: unknown) {

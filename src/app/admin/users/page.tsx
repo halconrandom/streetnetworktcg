@@ -27,6 +27,7 @@ interface Pack {
   set_logo: string | null;
   game: string | null;
   series: string | null;
+  pokemon_count?: number;
 }
 
 const navItems = [
@@ -55,12 +56,28 @@ export default function AdminUsersPage() {
   const [gameFilter, setGameFilter] = useState<string>('');
   const [seriesFilter, setSeriesFilter] = useState<string>('');
   const [packSearch, setPackSearch] = useState<string>('');
+  const [pokemonSearch, setPokemonSearch] = useState<string>('');
   const [activePackId, setActivePackId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
     fetchPacks();
   }, []);
+
+  // Debounce para búsqueda de Pokémon
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (pokemonSearch.length >= 2) {
+        fetchPacks(pokemonSearch);
+        setGameFilter('');
+        setSeriesFilter('');
+      } else if (pokemonSearch.length === 0) {
+        fetchPacks();
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [pokemonSearch]);
 
   const fetchUsers = async () => {
     try {
@@ -75,9 +92,13 @@ export default function AdminUsersPage() {
     }
   };
 
-  const fetchPacks = async () => {
+  const fetchPacks = async (pokemon?: string) => {
     try {
-      const res = await fetch('/api/admin/packs');
+      const params = new URLSearchParams();
+      if (pokemon && pokemon.length >= 2) {
+        params.append('pokemon', pokemon);
+      }
+      const res = await fetch(`/api/admin/packs?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setPacks(data.packs);
@@ -151,6 +172,7 @@ export default function AdminUsersPage() {
     setGameFilter('');
     setSeriesFilter('');
     setPackSearch('');
+    setPokemonSearch('');
     setActivePackId(null);
   };
 
@@ -202,17 +224,19 @@ export default function AdminUsersPage() {
       u.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filteredPacks = packs.filter(p => {
-    if (gameFilter && p.game !== gameFilter) return false;
-    if (seriesFilter && p.series !== seriesFilter) return false;
-    if (packSearch) {
-      const search = packSearch.toLowerCase();
-      const matchesName = p.name.toLowerCase().includes(search);
-      const matchesSet = p.set_name?.toLowerCase().includes(search);
-      if (!matchesName && !matchesSet) return false;
-    }
-    return true;
-  });
+  const filteredPacks = pokemonSearch.length >= 2 
+    ? packs // Si hay búsqueda de Pokémon, la API ya filtró
+    : packs.filter(p => {
+      if (gameFilter && p.game !== gameFilter) return false;
+      if (seriesFilter && p.series !== seriesFilter) return false;
+      if (packSearch) {
+        const search = packSearch.toLowerCase();
+        const matchesName = p.name.toLowerCase().includes(search);
+        const matchesSet = p.set_name?.toLowerCase().includes(search);
+        if (!matchesName && !matchesSet) return false;
+      }
+      return true;
+    });
 
   // Obtener series únicas del juego seleccionado
   const availableSeries = gameFilter 
@@ -495,7 +519,27 @@ export default function AdminUsersPage() {
                   <div className="space-y-6">
                     {/* Search and Filters */}
                     <div className="space-y-3">
-                      {/* Search */}
+                      {/* Pokemon Search */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500" />
+                        <input
+                          type="text"
+                          placeholder="Buscar Pokémon (ej: Pikachu, Charizard...)"
+                          value={pokemonSearch}
+                          onChange={(e) => setPokemonSearch(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 bg-amber-600/10 border border-amber-600/30 rounded-xl text-white placeholder-amber-500/50 focus:outline-none focus:border-amber-500"
+                        />
+                        {pokemonSearch && (
+                          <button
+                            onClick={() => { setPokemonSearch(''); fetchPacks(); }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-500 hover:text-amber-400"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Pack/Set Search */}
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                         <input
@@ -558,7 +602,18 @@ export default function AdminUsersPage() {
 
                     {/* Results count */}
                     <p className="text-sm text-zinc-500">
-                      {filteredPacks.length} packs encontrados
+                      {pokemonSearch.length >= 2 ? (
+                        <>
+                          {filteredPacks.length} packs con <span className="text-amber-400 font-medium">{pokemonSearch}</span>
+                          {filteredPacks.some(p => p.pokemon_count) && (
+                            <span className="text-zinc-400 ml-2">
+                              ({filteredPacks.reduce((a, p) => a + (p.pokemon_count || 0), 0)} cartas encontradas)
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <>{filteredPacks.length} packs encontrados</>
+                      )}
                     </p>
 
                     {/* Packs Grid */}
@@ -604,7 +659,14 @@ export default function AdminUsersPage() {
                               <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${getGameBadge(pack.game)}`}>
                                 {pack.game || 'N/A'}
                               </span>
-                              <span className="text-xs text-zinc-500">{pack.card_count} cartas</span>
+                              <div className="flex items-center gap-2">
+                                {pokemonSearch.length >= 2 && pack.pokemon_count && (
+                                  <span className="text-xs text-amber-400 font-medium">
+                                    {pack.pokemon_count}x
+                                  </span>
+                                )}
+                                <span className="text-xs text-zinc-500">{pack.card_count} cartas</span>
+                              </div>
                             </div>
 
                             {/* Quantity Selector or Action Button */}
