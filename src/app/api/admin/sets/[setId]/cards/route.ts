@@ -32,6 +32,7 @@ export async function GET(
         name,
         number,
         rarity,
+        rarity_slug,
         image_url
       FROM sn_tcg_cards
       WHERE set_id = $1

@@ -1,11 +1,32 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Package, Plus, Edit2, Trash2, Shield, Users, Layers, UserCog, Eye, X, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image';
+import { RarityBadge } from '@/components/ui/RarityBadge';
+
+function CardThumb({ src, alt }: { src: string | null; alt: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <ImageIcon className="h-8 w-8 text-zinc-600" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-full h-full object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 interface Pack {
   id: string;
@@ -17,6 +38,7 @@ interface Pack {
   set_id: string | null;
   set_name: string | null;
   set_logo: string | null;
+  set_tcg_id: string | null;
   game: string | null;
   cards_in_set: string;
 }
@@ -31,8 +53,9 @@ interface Set {
 interface Card {
   id: string;
   name: string;
-  number: string;
+  number: string | null;
   rarity: string | null;
+  rarity_slug: string | null;
   image_url: string | null;
 }
 
@@ -49,11 +72,13 @@ export default function AdminPacksPage() {
   const [sets, setSets] = useState<Set[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showCardsModal, setShowCardsModal] = useState(false);
-  const [selectedPack, setSelectedPack] = useState<Pack | null>(null);
-  const [cards, setCards] = useState<Card[]>([]);
-  const [loadingCards, setLoadingCards] = useState(false);
   const [editingPack, setEditingPack] = useState<Pack | null>(null);
+  const [cardsModal, setCardsModal] = useState<{ open: boolean; pack: Pack | null; cards: Card[]; loading: boolean }>({
+    open: false,
+    pack: null,
+    cards: [],
+    loading: false,
+  });
   const [formData, setFormData] = useState({
     name: '',
     setId: '',
@@ -91,29 +116,29 @@ export default function AdminPacksPage() {
   };
 
   const fetchCards = async (setId: string) => {
-    setLoadingCards(true);
+    setCardsModal(prev => ({ ...prev, loading: true }));
     try {
-      const res = await fetch(`/api/admin/sets/${setId}/cards`);
-      if (res.ok) {
-        const data = await res.json();
-        setCards(data.cards || []);
-      }
+      const res = await fetch(`/api/admin/sets?setId=${setId}`);
+      if (!res.ok) throw new Error('Error fetching cards');
+      const data = await res.json();
+      setCardsModal(prev => ({ ...prev, cards: data.cards || [], loading: false }));
     } catch (err) {
       console.error(err);
-      setCards([]);
-    } finally {
-      setLoadingCards(false);
+      setCardsModal(prev => ({ ...prev, loading: false }));
     }
   };
 
-  const handleViewCards = (pack: Pack) => {
+  const openCardsModal = (pack: Pack) => {
     if (!pack.set_id) {
       alert('Este pack no tiene un set asignado');
       return;
     }
-    setSelectedPack(pack);
-    setShowCardsModal(true);
+    setCardsModal({ open: true, pack, cards: [], loading: true });
     fetchCards(pack.set_id);
+  };
+
+  const closeCardsModal = () => {
+    setCardsModal({ open: false, pack: null, cards: [], loading: false });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -187,6 +212,29 @@ export default function AdminPacksPage() {
       default:
         return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
     }
+  };
+
+  // Fix card image URL - TCGdex needs proper format
+  const getCardImageUrl = (card: Card, pack: Pack | null) => {
+    if (!card.image_url) return null;
+
+    // Si ya tiene extensión, usar tal cual
+    if (card.image_url.endsWith('.png') || card.image_url.endsWith('.jpg') || card.image_url.endsWith('.webp')) {
+      return card.image_url;
+    }
+
+    // Si es de TCGdex sin extensión, construir URL correcta
+    // Formato: https://assets.tcgdex.net/en/{setId}/{cardNumber}.jpg
+    if (card.image_url.includes('assets.tcgdex.net')) {
+      const tcgId = pack?.set_tcg_id;
+      if (tcgId && card.number) {
+        return `https://assets.tcgdex.net/en/${tcgId}/${card.number}.jpg`;
+      }
+      // Fallback: agregar .jpg
+      return `${card.image_url}.jpg`;
+    }
+
+    return card.image_url;
   };
 
   if (loading) {
@@ -275,17 +323,20 @@ export default function AdminPacksPage() {
                   className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden"
                 >
                   {/* Pack Image */}
-                  {((pack.image_url || pack.set_logo)) && (
-                    <div className="relative h-40 bg-gradient-to-br from-zinc-900 to-zinc-800">
-                      <Image
+                  <div className="relative h-40 bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center">
+                    {pack.image_url || pack.set_logo ? (
+                      <img
                         src={pack.image_url || pack.set_logo || ''}
                         alt={pack.name}
-                        fill
-                        className="object-contain p-4"
-                        unoptimized
+                        className="h-32 w-auto object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
-                    </div>
-                  )}
+                    ) : (
+                      <Package className="h-16 w-16 text-zinc-600" />
+                    )}
+                  </div>
                   
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-4">
@@ -317,11 +368,11 @@ export default function AdminPacksPage() {
 
                     <div className="flex items-center justify-between pt-4 border-t border-white/5">
                       <button
-                        onClick={() => handleViewCards(pack)}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors text-sm"
+                        onClick={() => openCardsModal(pack)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-red-600/10 border border-red-600/20 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-600/20 transition-colors"
                       >
                         <Eye className="h-4 w-4" />
-                        Ver Cartas
+                        Ver cartas
                       </button>
                       <div className="flex gap-2">
                         <button
@@ -438,78 +489,78 @@ export default function AdminPacksPage() {
         </div>
       )}
 
-      {/* Modal Ver Cartas */}
-      {showCardsModal && selectedPack && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      {/* Cards Modal */}
+      <AnimatePresence>
+        {cardsModal.open && cardsModal.pack && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={closeCardsModal}
           >
-            <div className="flex items-center justify-between p-6 border-b border-white/5">
-              <div>
-                <h2 className="text-xl font-bold text-white">Cartas de {selectedPack.name}</h2>
-                <p className="text-sm text-zinc-500">{selectedPack.set_name} • {cards.length} cartas</p>
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-white/5">
+                <div>
+                  <h2 className="text-xl font-bold text-white">{cardsModal.pack.name}</h2>
+                  <p className="text-sm text-zinc-500">
+                    {cardsModal.pack.set_name} • {cardsModal.cards.length} cartas
+                  </p>
+                </div>
+                <button
+                  onClick={closeCardsModal}
+                  className="p-2 bg-white/5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  setShowCardsModal(false);
-                  setSelectedPack(null);
-                  setCards([]);
-                }}
-                className="p-2 bg-white/5 border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
 
-            <div className="p-6 overflow-y-auto max-h-[60vh]">
-              {loadingCards ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : cards.length === 0 ? (
-                <div className="text-center py-12">
-                  <ImageIcon className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-                  <p className="text-zinc-500">No se encontraron cartas</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {cards.map((card) => (
-                    <div
-                      key={card.id}
-                      className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden group hover:border-white/10 transition-colors"
-                    >
-                      <div className="relative aspect-[2.5/3.5] bg-gradient-to-br from-zinc-900 to-zinc-800">
-                        {card.image_url ? (
-                          <Image
-                            src={card.image_url}
-                            alt={card.name}
-                            fill
-                            className="object-contain p-2 group-hover:scale-105 transition-transform"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <ImageIcon className="h-8 w-8 text-zinc-600" />
+              {/* Content */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)]">
+                {cardsModal.loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : cardsModal.cards.length > 0 ? (
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {cardsModal.cards.map((card) => (
+                      <div
+                        key={card.id}
+                        className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden group"
+                      >
+                        <div className="aspect-[3/4] relative bg-zinc-800">
+                          <CardThumb src={getCardImageUrl(card, cardsModal.pack)} alt={card.name} />
+                        </div>
+                        <div className="p-2">
+                          <p className="text-xs font-medium text-white truncate">{card.name}</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <RarityBadge rarity={card.rarity || card.rarity_slug || 'Common'} size="sm" />
+                            {card.number && (
+                              <span className="text-[10px] text-zinc-500">#{card.number}</span>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
-                      <div className="p-2">
-                        <p className="text-xs font-medium text-white truncate">{card.name}</p>
-                        <p className="text-xs text-zinc-500">#{card.number}</p>
-                        {card.rarity && (
-                          <p className="text-xs text-zinc-400 truncate mt-1">{card.rarity}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Layers className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+                    <p className="text-zinc-500">No hay cartas en este set</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }
