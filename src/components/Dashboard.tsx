@@ -15,7 +15,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       {/* Hero Section */}
       <div className="text-center max-w-2xl">
         <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
-          Street <span className="text-red-600">Games</span> & <span className="text-amber-500">Books</span>
+          Street <span className="text-red-600">TCG</span> <span className="text-amber-500">Zone</span>
         </h1>
         <p className="text-zinc-400 text-lg">
           Colecciona e intercambia cartas en tu servidor de GTA V roleplay
