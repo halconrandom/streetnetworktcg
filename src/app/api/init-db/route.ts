@@ -11,6 +11,12 @@ export async function GET() {
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 name VARCHAR(255) NOT NULL,
                 game VARCHAR(50) NOT NULL CHECK (game IN ('Pokemon', 'Yu-Gi-Oh!', 'Magic')),
+                series VARCHAR(255),
+                printed_total INTEGER,
+                release_date DATE,
+                logo_url TEXT,
+                symbol_url TEXT,
+                tcg_id VARCHAR(100) UNIQUE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -24,8 +30,24 @@ export async function GET() {
                 name VARCHAR(255) NOT NULL,
                 type VARCHAR(100),
                 rarity VARCHAR(100),
+                rarity_slug VARCHAR(100),
                 image_url TEXT,
                 game VARCHAR(50) NOT NULL CHECK (game IN ('Pokemon', 'Yu-Gi-Oh!', 'Magic')),
+                supertype VARCHAR(100),
+                subtypes TEXT[],
+                types TEXT[],
+                hp VARCHAR(20),
+                number VARCHAR(20),
+                artist VARCHAR(255),
+                tcg_id VARCHAR(100) UNIQUE,
+                evolves_to TEXT[],
+                retreat_cost TEXT[],
+                converted_retreat_cost INTEGER,
+                attacks JSONB,
+                abilities JSONB,
+                weaknesses JSONB,
+                resistances JSONB,
+                national_pokedex_numbers INTEGER[],
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -38,11 +60,26 @@ export async function GET() {
                 set_id UUID REFERENCES sn_tcg_sets(id) ON DELETE CASCADE,
                 name VARCHAR(255) NOT NULL,
                 price INTEGER NOT NULL DEFAULT 0,
-                card_count INTEGER NOT NULL DEFAULT 5,
+                card_count INTEGER NOT NULL DEFAULT 10,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         `);
         results.push('sn_tcg_packs: OK');
+
+        // Create Rarity Config table
+        await query(`
+            CREATE TABLE IF NOT EXISTS sn_tcg_rarity_config (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                set_id UUID REFERENCES sn_tcg_sets(id) ON DELETE CASCADE,
+                rarity VARCHAR(100) NOT NULL,
+                weight DECIMAL(5, 4) NOT NULL,
+                min_per_pack INTEGER DEFAULT 0,
+                max_per_pack INTEGER DEFAULT 1,
+                is_guaranteed BOOLEAN DEFAULT FALSE,
+                UNIQUE(set_id, rarity)
+            )
+        `);
+        results.push('sn_tcg_rarity_config: OK');
 
         // Create Users table (linked to Clerk)
         await query(`
@@ -51,7 +88,7 @@ export async function GET() {
                 clerk_id VARCHAR(255) UNIQUE NOT NULL,
                 username VARCHAR(100) NOT NULL,
                 email VARCHAR(255) UNIQUE NOT NULL,
-                role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+                role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'mod', 'admin')),
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -82,64 +119,26 @@ export async function GET() {
         `);
         results.push('sn_tcg_inventory: OK');
 
+        // Create Transactions table
+        await query(`
+            CREATE TABLE IF NOT EXISTS sn_tcg_transactions (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id UUID REFERENCES sn_tcg_users(id) ON DELETE SET NULL,
+                admin_id UUID REFERENCES sn_tcg_users(id) ON DELETE SET NULL,
+                action_type VARCHAR(50) NOT NULL,
+                action_data JSONB,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        results.push('sn_tcg_transactions: OK');
+
         // Create indexes
         await query(`CREATE INDEX IF NOT EXISTS idx_sn_tcg_users_clerk_id ON sn_tcg_users(clerk_id)`);
         await query(`CREATE INDEX IF NOT EXISTS idx_sn_tcg_cards_set_id ON sn_tcg_cards(set_id)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_sn_tcg_cards_rarity ON sn_tcg_cards(rarity)`);
         await query(`CREATE INDEX IF NOT EXISTS idx_sn_tcg_inventory_user_id ON sn_tcg_inventory(user_id)`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_sn_tcg_user_packs_user_id ON sn_tcg_user_packs(user_id)`);
         results.push('Indexes: OK');
-
-        // Seed Sets if empty
-        const setsCount = await query('SELECT count(*)::int as cnt FROM sn_tcg_sets');
-        if (setsCount.rows[0].cnt === 0) {
-            await query(`
-                INSERT INTO sn_tcg_sets (name, game) VALUES 
-                ('Base Set', 'Pokemon'),
-                ('Legend of Blue Eyes', 'Yu-Gi-Oh!'),
-                ('Alpha Edition', 'Magic')
-            `);
-            results.push('Sets seeded: OK');
-        } else {
-            results.push('Sets: already seeded');
-        }
-
-        // Seed Cards if empty
-        const cardsCount = await query('SELECT count(*)::int as cnt FROM sn_tcg_cards');
-        if (cardsCount.rows[0].cnt === 0) {
-            const sets = await query('SELECT id, name FROM sn_tcg_sets');
-            const setIds: Record<string, string> = {};
-            sets.rows.forEach(r => { setIds[r.name] = r.id; });
-
-            await query(`
-                INSERT INTO sn_tcg_cards (set_id, name, type, rarity, image_url, game) VALUES 
-                ($1, 'Charizard', 'Fire', 'Ultra Rare', 'https://images.pokemontcg.io/base1/4_hires.png', 'Pokemon'),
-                ($1, 'Blastoise', 'Water', 'Rare Holo', 'https://images.pokemontcg.io/base1/2_hires.png', 'Pokemon'),
-                ($1, 'Pikachu', 'Lightning', 'Common', 'https://images.pokemontcg.io/base1/58_hires.png', 'Pokemon'),
-                ($2, 'Blue-Eyes White Dragon', 'Dragon', 'Ultra Rare', 'https://images.ygoprodeck.com/images/cards/89631139.jpg', 'Yu-Gi-Oh!'),
-                ($2, 'Dark Magician', 'Spellcaster', 'Rare Holo', 'https://images.ygoprodeck.com/images/cards/46986414.jpg', 'Yu-Gi-Oh!'),
-                ($3, 'Black Lotus', 'Artifact', 'Rare', 'https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg', 'Magic')
-            `, [setIds['Base Set'], setIds['Legend of Blue Eyes'], setIds['Alpha Edition']]);
-            results.push('Cards seeded: OK');
-        } else {
-            results.push('Cards: already seeded');
-        }
-
-        // Seed Packs if empty
-        const packsCount = await query('SELECT count(*)::int as cnt FROM sn_tcg_packs');
-        if (packsCount.rows[0].cnt === 0) {
-            const sets = await query('SELECT id, name FROM sn_tcg_sets');
-            const setIds: Record<string, string> = {};
-            sets.rows.forEach(r => { setIds[r.name] = r.id; });
-
-            await query(`
-                INSERT INTO sn_tcg_packs (set_id, name, price, card_count) VALUES 
-                ($1, 'Pokemon Base Set', 500, 5),
-                ($2, 'Legend of Blue Eyes', 400, 5),
-                ($3, 'MTG Alpha Edition', 1000, 5)
-            `, [setIds['Base Set'], setIds['Legend of Blue Eyes'], setIds['Alpha Edition']]);
-            results.push('Packs seeded: OK');
-        } else {
-            results.push('Packs: already seeded');
-        }
 
         return NextResponse.json({ success: true, results });
 
