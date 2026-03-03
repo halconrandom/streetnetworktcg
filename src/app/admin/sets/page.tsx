@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Layers, ChevronDown, Shield, Users, Package, UserCog, X, Image as ImageIcon, Eye } from 'lucide-react';
+import { Layers, ChevronDown, Shield, Users, Package, UserCog, X, Image as ImageIcon, Eye, Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { RarityBadge } from '@/components/ui/RarityBadge';
@@ -40,6 +40,7 @@ interface Set {
   source: string | null;
   cards_count: string;
   packs_count: string;
+  pokemon_count?: number;
 }
 
 interface RarityConfig {
@@ -75,6 +76,7 @@ export default function AdminSetsPage() {
   const [expandedSet, setExpandedSet] = useState<string | null>(null);
   const [rarityConfig, setRarityConfig] = useState<RarityConfig[]>([]);
   const [gameFilter, setGameFilter] = useState<string>('');
+  const [pokemonSearch, setPokemonSearch] = useState('');
   const [cardsModal, setCardsModal] = useState<{ open: boolean; set: Set | null; cards: Card[]; loading: boolean }>({
     open: false,
     set: null,
@@ -87,9 +89,26 @@ export default function AdminSetsPage() {
     fetchSets();
   }, []);
 
-  const fetchSets = async () => {
+  // Debounce para búsqueda de Pokémon
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (pokemonSearch.length >= 2) {
+        fetchSets(pokemonSearch);
+      } else if (pokemonSearch.length === 0) {
+        fetchSets();
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [pokemonSearch]);
+
+  const fetchSets = async (pokemon?: string) => {
     try {
-      const res = await fetch('/api/admin/sets');
+      const params = new URLSearchParams();
+      if (pokemon && pokemon.length >= 2) {
+        params.append('pokemon', pokemon);
+      }
+      const res = await fetch(`/api/admin/sets?${params.toString()}`);
       if (!res.ok) throw new Error('Error fetching sets');
       const data = await res.json();
       setSets(data.sets);
@@ -273,21 +292,56 @@ export default function AdminSetsPage() {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2">Sets</h1>
-                <p className="text-zinc-400">{sets.length} sets disponibles</p>
+                <p className="text-zinc-400">
+                  {pokemonSearch.length >= 2 ? (
+                    <>
+                      {sets.length} sets con <span className="text-amber-400 font-medium">{pokemonSearch}</span>
+                      {sets.some(s => s.pokemon_count) && (
+                        <span className="text-zinc-500 ml-2">
+                          ({sets.reduce((a, s) => a + (Number(s.pokemon_count) || 0), 0)} cartas encontradas)
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>{sets.length} sets disponibles</>
+                  )}
+                </p>
               </div>
-              <div className="flex gap-2">
-                {['', 'Pokemon', 'Yu-Gi-Oh!', 'Magic'].map((game) => (
-                  <button
-                    key={game}
-                    onClick={() => setGameFilter(game)}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${gameFilter === game
-                      ? 'bg-red-600 text-white'
-                      : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'
-                      }`}
-                  >
-                    {game || 'Todos'}
-                  </button>
-                ))}
+              <div className="flex items-center gap-3">
+                {/* Pokemon Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500" />
+                  <input
+                    type="text"
+                    placeholder="Buscar Pokémon..."
+                    value={pokemonSearch}
+                    onChange={(e) => setPokemonSearch(e.target.value)}
+                    className="pl-10 pr-10 py-2 bg-amber-600/10 border border-amber-600/30 rounded-xl text-white placeholder-amber-500/50 focus:outline-none focus:border-amber-500 w-48"
+                  />
+                  {pokemonSearch && (
+                    <button
+                      onClick={() => setPokemonSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-500 hover:text-amber-400"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                {/* Game Filter */}
+                <div className="flex gap-2">
+                  {['', 'Pokemon', 'Yu-Gi-Oh!', 'Magic'].map((game) => (
+                    <button
+                      key={game}
+                      onClick={() => setGameFilter(game)}
+                      className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${gameFilter === game
+                        ? 'bg-red-600 text-white'
+                        : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'
+                        }`}
+                    >
+                      {game || 'Todos'}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -347,7 +401,12 @@ export default function AdminSetsPage() {
 
                           <div className="flex items-center gap-4">
                             <div className="text-right">
-                              <p className="text-sm font-medium text-white">{set.cards_count} cartas</p>
+                              <p className="text-sm font-medium text-white">
+                                {set.cards_count} cartas
+                                {pokemonSearch.length >= 2 && set.pokemon_count && (
+                                  <span className="text-amber-400 text-xs ml-1">({set.pokemon_count}x)</span>
+                                )}
+                              </p>
                               <p className="text-xs text-zinc-500">{set.packs_count} packs</p>
                             </div>
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Plus, Edit2, Trash2, Shield, Users, Layers, UserCog, Eye, X, Image as ImageIcon, RefreshCw, Loader2 } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, Shield, Users, Layers, UserCog, Eye, X, Image as ImageIcon, RefreshCw, Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { RarityBadge } from '@/components/ui/RarityBadge';
@@ -41,6 +41,7 @@ interface Pack {
   set_tcg_id: string | null;
   game: string | null;
   cards_in_set: string;
+  pokemon_count?: number;
 }
 
 interface Set {
@@ -87,16 +88,34 @@ export default function AdminPacksPage() {
     imageUrl: '',
   });
   const [updatingImages, setUpdatingImages] = useState(false);
+  const [pokemonSearch, setPokemonSearch] = useState('');
   const pathname = usePathname();
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  // Debounce para búsqueda de Pokémon
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (pokemonSearch.length >= 2) {
+        fetchData(pokemonSearch);
+      } else if (pokemonSearch.length === 0) {
+        fetchData();
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [pokemonSearch]);
+
+  const fetchData = async (pokemon?: string) => {
     try {
+      const params = new URLSearchParams();
+      if (pokemon && pokemon.length >= 2) {
+        params.append('pokemon', pokemon);
+      }
       const [packsRes, setsRes] = await Promise.all([
-        fetch('/api/admin/packs'),
+        fetch(`/api/admin/packs?${params.toString()}`),
         fetch('/api/admin/sets'),
       ]);
 
@@ -315,9 +334,41 @@ export default function AdminPacksPage() {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2">Sobres</h1>
-                <p className="text-zinc-400">{packs.length} sobres disponibles</p>
+                <p className="text-zinc-400">
+                  {pokemonSearch.length >= 2 ? (
+                    <>
+                      {packs.length} packs con <span className="text-amber-400 font-medium">{pokemonSearch}</span>
+                      {packs.some(p => p.pokemon_count) && (
+                        <span className="text-zinc-500 ml-2">
+                          ({packs.reduce((a, p) => a + (Number(p.pokemon_count) || 0), 0)} cartas encontradas)
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>{packs.length} sobres disponibles</>
+                  )}
+                </p>
               </div>
               <div className="flex items-center gap-3">
+                {/* Pokemon Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500" />
+                  <input
+                    type="text"
+                    placeholder="Buscar Pokémon..."
+                    value={pokemonSearch}
+                    onChange={(e) => setPokemonSearch(e.target.value)}
+                    className="pl-10 pr-10 py-2 bg-amber-600/10 border border-amber-600/30 rounded-xl text-white placeholder-amber-500/50 focus:outline-none focus:border-amber-500 w-48"
+                  />
+                  {pokemonSearch && (
+                    <button
+                      onClick={() => setPokemonSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-500 hover:text-amber-400"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
                 <button
                   onClick={handleUpdateImages}
                   disabled={updatingImages}
@@ -389,7 +440,12 @@ export default function AdminPacksPage() {
                       </div>
                       <div className="bg-white/[0.02] rounded-xl p-3">
                         <p className="text-xs text-zinc-500 mb-1">En el set</p>
-                        <p className="text-lg font-bold text-zinc-300">{pack.cards_in_set}</p>
+                        <p className="text-lg font-bold text-zinc-300">
+                          {pack.cards_in_set}
+                          {pokemonSearch.length >= 2 && pack.pokemon_count && (
+                            <span className="text-amber-400 text-sm ml-1">({pack.pokemon_count}x)</span>
+                          )}
+                        </p>
                       </div>
                     </div>
 

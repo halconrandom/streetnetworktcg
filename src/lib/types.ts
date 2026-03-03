@@ -13,7 +13,7 @@ export interface Card {
   game: GameType;
   price?: number;
   quantity?: number;
-  
+
   // Extended Pokemon fields
   supertype?: string;
   subtypes?: string[];
@@ -103,6 +103,7 @@ export interface InventoryItem {
   packId: string;
   count: number;
   name?: string;
+  imageUrl?: string | null;
 }
 
 export interface UserProfile {

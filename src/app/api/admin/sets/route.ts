@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const game = searchParams.get('game');
     const setId = searchParams.get('setId');
+    const pokemon = searchParams.get('pokemon');
 
     // Si piden un set específico con sus cartas
     if (setId) {
@@ -66,29 +67,58 @@ export async function GET(req: NextRequest) {
     }
 
     // Listar todos los sets
-    let queryText = `
-      SELECT 
-        s.id,
-        s.name,
-        s.game,
-        s.series,
-        s.printed_total,
-        s.release_date,
-        s.logo_url,
-        s.tcg_id,
-        s.source,
-        (SELECT COUNT(*) FROM sn_tcg_cards c WHERE c.set_id = s.id) as cards_count,
-        (SELECT COUNT(*) FROM sn_tcg_packs p WHERE p.set_id = s.id) as packs_count
-      FROM sn_tcg_sets s
-    `;
-
+    let queryText: string;
     const params: unknown[] = [];
-    if (game) {
-      queryText += ' WHERE s.game = $1';
-      params.push(game);
-    }
 
-    queryText += ' ORDER BY s.game, s.release_date DESC';
+    if (pokemon && pokemon.length >= 2) {
+      // Buscar sets que contienen cartas del Pokémon especificado
+      queryText = `
+        SELECT DISTINCT
+          s.id,
+          s.name,
+          s.game,
+          s.series,
+          s.printed_total,
+          s.release_date,
+          s.logo_url,
+          s.tcg_id,
+          s.source,
+          (SELECT COUNT(*)::int FROM sn_tcg_cards c WHERE c.set_id = s.id) as cards_count,
+          (SELECT COUNT(*)::int FROM sn_tcg_packs p WHERE p.set_id = s.id) as packs_count,
+          (SELECT COUNT(*)::int FROM sn_tcg_cards c WHERE c.set_id = s.id AND LOWER(c.name) LIKE LOWER($1)) as pokemon_count
+        FROM sn_tcg_sets s
+        WHERE EXISTS (
+          SELECT 1 FROM sn_tcg_cards c 
+          WHERE c.set_id = s.id 
+          AND LOWER(c.name) LIKE LOWER($1)
+        )
+        ORDER BY s.game, s.release_date DESC
+      `;
+      params.push(`%${pokemon}%`);
+    } else {
+      queryText = `
+        SELECT 
+          s.id,
+          s.name,
+          s.game,
+          s.series,
+          s.printed_total,
+          s.release_date,
+          s.logo_url,
+          s.tcg_id,
+          s.source,
+          (SELECT COUNT(*)::int FROM sn_tcg_cards c WHERE c.set_id = s.id) as cards_count,
+          (SELECT COUNT(*)::int FROM sn_tcg_packs p WHERE p.set_id = s.id) as packs_count
+        FROM sn_tcg_sets s
+      `;
+
+      if (game) {
+        queryText += ' WHERE s.game = $1';
+        params.push(game);
+      }
+
+      queryText += ' ORDER BY s.game, s.release_date DESC';
+    }
 
     const result = await query(queryText, params);
 

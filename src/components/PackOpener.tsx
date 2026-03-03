@@ -123,8 +123,21 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
                       </div>
 
                       <div className="w-32 h-48 rounded-xl overflow-hidden relative mt-4 shadow-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
-                        <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(getGameFromPackId(item.packId))} opacity-40`} />
-                        <PackageOpen className="h-12 w-12 text-white/30" />
+                        {item.imageUrl ? (
+                          <Image
+                            src={item.imageUrl}
+                            alt={item.name || item.packId}
+                            fill
+                            sizes="128px"
+                            className="object-contain"
+                            unoptimized
+                          />
+                        ) : (
+                          <>
+                            <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(getGameFromPackId(item.packId))} opacity-40`} />
+                            <PackageOpen className="h-12 w-12 text-white/30" />
+                          </>
+                        )}
                         <div className="absolute inset-0 border-2 border-white/20 rounded-xl" />
                       </div>
 
@@ -154,8 +167,21 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
               className="flex flex-col items-center gap-8"
             >
               <div className="w-48 h-72 rounded-2xl overflow-hidden relative shadow-[0_0_50px_rgba(220,38,38,0.3)] animate-pulse bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
-                <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(getGameFromPackId(selectedPackId))} opacity-40`} />
-                <PackageOpen className="h-16 w-16 text-white/30" />
+                {selectedPack?.imageUrl ? (
+                  <Image
+                    src={selectedPack.imageUrl}
+                    alt={selectedPack?.name || selectedPackId}
+                    fill
+                    sizes="192px"
+                    className="object-contain"
+                    unoptimized
+                  />
+                ) : (
+                  <>
+                    <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(getGameFromPackId(selectedPackId))} opacity-40`} />
+                    <PackageOpen className="h-16 w-16 text-white/30" />
+                  </>
+                )}
                 <div className="absolute inset-0 border-4 border-white/20 rounded-2xl" />
               </div>
 

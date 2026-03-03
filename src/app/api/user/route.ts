@@ -5,13 +5,13 @@ import { query } from '@/lib/db';
 export async function GET() {
     try {
         const { userId } = await auth();
-        
+
         if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const clerkUser = await currentUser();
-        
+
         // Get or create user in our database
         let userResult = await query(
             'SELECT id, clerk_id, username, role FROM sn_tcg_users WHERE clerk_id = $1',
@@ -22,7 +22,7 @@ export async function GET() {
             // Create user in our database from Clerk data
             const username = clerkUser?.username || clerkUser?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'Player';
             const email = clerkUser?.emailAddresses?.[0]?.emailAddress || '';
-            
+
             userResult = await query(
                 'INSERT INTO sn_tcg_users (clerk_id, username, email, role) VALUES ($1, $2, $3, $4) RETURNING id, clerk_id, username, role',
                 [userId, username, email, 'user']
@@ -33,7 +33,7 @@ export async function GET() {
 
         // Fetch unopened packs
         const packsResult = await query(`
-            SELECT p.id as "packId", p.name, up.count 
+            SELECT p.id as "packId", p.name, up.count, p.image_url as "imageUrl"
             FROM sn_tcg_user_packs up
             JOIN sn_tcg_packs p ON up.pack_id = p.id
             WHERE up.user_id = $1 AND up.count > 0
