@@ -1,13 +1,4 @@
-import { Pool } from 'pg';
-
-const pool = new Pool({
-  host: '198.245.57.170',
-  port: 5432,
-  user: 'sg_tcg_user',
-  password: 'Merida19521973',
-  database: 'SNCardDB',
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from './db';
 
 // TCG Pocket set IDs (from Bulbapedia)
 const POCKET_SET_IDS = [

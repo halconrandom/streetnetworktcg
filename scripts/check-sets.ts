@@ -1,13 +1,4 @@
-import { Pool } from 'pg';
-
-const pool = new Pool({
-  host: '198.245.57.170',
-  port: 5432,
-  user: 'sg_tcg_user',
-  password: 'Merida19521973',
-  database: 'SNCardDB',
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from './db';
 
 async function main() {
   const result = await pool.query('SELECT id, name, logo_url, symbol_url FROM sn_tcg_sets LIMIT 10');
