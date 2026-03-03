@@ -2,9 +2,32 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Search, Package, Layers, Shield, UserCog, X, Plus, Minus, Check, Loader2 } from 'lucide-react';
+import { Users, Search, Package, Layers, Shield, UserCog, X, Plus, Minus, Check, Loader2, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { RarityBadge } from '@/components/ui/RarityBadge';
+
+function CardThumb({ src, alt, size = 'sm' }: { src: string | null; alt: string; size?: 'sm' | 'md' }) {
+  const [failed, setFailed] = useState(false);
+  const sizeClass = size === 'sm' ? 'h-8 w-8' : 'h-12 w-12';
+
+  if (!src || failed) {
+    return (
+      <div className={`${sizeClass} flex items-center justify-center bg-zinc-800 rounded`}>
+        <ImageIcon className="h-4 w-4 text-zinc-600" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={`${sizeClass} object-cover rounded`}
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 interface User {
   id: string;
@@ -23,14 +46,18 @@ interface Set {
   name: string;
   game: string;
   cards_count: string;
+  logo_url: string | null;
+  tcg_id: string | null;
 }
 
 interface Card {
   id: string;
   name: string;
-  rarity: string;
+  rarity: string | null;
+  rarity_slug: string | null;
   image_url: string | null;
   number: string | null;
+  set_name?: string;
 }
 
 const navItems = [
@@ -59,9 +86,13 @@ export default function AdminUsersPage() {
   const [setQuantity, setSetQuantity] = useState(1);
   const [cardSearch, setCardSearch] = useState('');
   const [searchedCards, setSearchedCards] = useState<Card[]>([]);
-  const [selectedCards, setSelectedCards] = useState<Map<string, number>>(new Map());
+  const [selectedCards, setSelectedCards] = useState<Map<string, { card: Card; quantity: number }>>(new Map());
   const [assigning, setAssigning] = useState(false);
   const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
+  
+  // Dropdown state
+  const [showSetDropdown, setShowSetDropdown] = useState(false);
+  const [setGameFilter, setSetGameFilter] = useState<string>('');
 
   useEffect(() => {
     fetchUsers();
@@ -181,7 +212,7 @@ export default function AdminUsersPage() {
     setAssigning(true);
     setAssignSuccess(null);
     
-    const cards = Array.from(selectedCards.entries()).map(([cardId, quantity]) => ({
+    const cards = Array.from(selectedCards.entries()).map(([cardId, { quantity }]) => ({
       cardId,
       quantity
     }));
@@ -223,6 +254,8 @@ export default function AdminUsersPage() {
     setSearchedCards([]);
     setSelectedCards(new Map());
     setAssignSuccess(null);
+    setShowSetDropdown(false);
+    setSetGameFilter('');
   };
 
   const openAssignModal = (user: User) => {
@@ -231,21 +264,29 @@ export default function AdminUsersPage() {
     resetAssignState();
   };
 
-  const toggleCardSelection = (cardId: string) => {
+  const toggleCardSelection = (card: Card) => {
     const newSelection = new Map(selectedCards);
-    if (newSelection.has(cardId)) {
-      newSelection.delete(cardId);
+    if (newSelection.has(card.id)) {
+      newSelection.delete(card.id);
     } else {
-      newSelection.set(cardId, 1);
+      newSelection.set(card.id, { card, quantity: 1 });
     }
     setSelectedCards(newSelection);
   };
 
   const updateCardQuantity = (cardId: string, delta: number) => {
     const newSelection = new Map(selectedCards);
-    const current = newSelection.get(cardId) || 0;
-    const newQty = Math.max(1, current + delta);
-    newSelection.set(cardId, newQty);
+    const current = newSelection.get(cardId);
+    if (current) {
+      const newQty = Math.max(1, current.quantity + delta);
+      newSelection.set(cardId, { ...current, quantity: newQty });
+      setSelectedCards(newSelection);
+    }
+  };
+
+  const removeCard = (cardId: string) => {
+    const newSelection = new Map(selectedCards);
+    newSelection.delete(cardId);
     setSelectedCards(newSelection);
   };
 
@@ -254,6 +295,10 @@ export default function AdminUsersPage() {
       u.username.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  const filteredSets = setGameFilter
+    ? sets.filter(s => s.game === setGameFilter)
+    : sets;
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -492,14 +537,14 @@ export default function AdminUsersPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => !assigning && setShowAssignModal(false)}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+              className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -507,7 +552,7 @@ export default function AdminUsersPage() {
                 <div>
                   <h2 className="text-xl font-bold text-white">Asignar Items</h2>
                   <p className="text-sm text-zinc-500">
-                    Usuario: <span className="text-white">{selectedUser.username}</span>
+                    Usuario: <span className="text-white font-medium">{selectedUser.username}</span>
                   </p>
                 </div>
                 <button
@@ -522,30 +567,30 @@ export default function AdminUsersPage() {
               <div className="flex border-b border-white/5">
                 <button
                   onClick={() => setAssignTab('sets')}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                  className={`flex-1 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
                     assignTab === 'sets'
-                      ? 'text-red-500 border-b-2 border-red-500'
+                      ? 'text-red-500 border-b-2 border-red-500 bg-red-600/5'
                       : 'text-zinc-400 hover:text-white'
                   }`}
                 >
-                  <Layers className="h-4 w-4 inline mr-2" />
-                  Asignar Set
+                  <Layers className="h-4 w-4" />
+                  Asignar Set Completo
                 </button>
                 <button
                   onClick={() => setAssignTab('cards')}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                  className={`flex-1 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
                     assignTab === 'cards'
-                      ? 'text-red-500 border-b-2 border-red-500'
+                      ? 'text-red-500 border-b-2 border-red-500 bg-red-600/5'
                       : 'text-zinc-400 hover:text-white'
                   }`}
                 >
-                  <Package className="h-4 w-4 inline mr-2" />
+                  <Package className="h-4 w-4" />
                   Cartas Específicas
                 </button>
               </div>
 
               {/* Content */}
-              <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <div className="p-6 overflow-y-auto max-h-[50vh]">
                 {assignSuccess ? (
                   <div className="flex flex-col items-center justify-center py-8">
                     <div className="h-16 w-16 rounded-full bg-green-600/20 flex items-center justify-center mb-4">
@@ -554,53 +599,151 @@ export default function AdminUsersPage() {
                     <p className="text-green-400 font-medium text-center">{assignSuccess}</p>
                   </div>
                 ) : assignTab === 'sets' ? (
-                  <div className="space-y-4">
-                    {/* Set Selection */}
-                    <div>
-                      <label className="block text-sm text-zinc-400 mb-2">Seleccionar Set</label>
-                      <select
-                        value={selectedSet?.id || ''}
-                        onChange={(e) => {
-                          const set = sets.find(s => s.id === e.target.value);
-                          setSelectedSet(set || null);
-                          if (set) fetchSetCards(set.id);
-                        }}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-red-600/50"
+                  <div className="space-y-6">
+                    {/* Game Filter */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setSetGameFilter('')}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                          setGameFilter === '' ? 'bg-red-600 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
+                        }`}
                       >
-                        <option value="">Selecciona un set...</option>
-                        {sets.map((set) => (
-                          <option key={set.id} value={set.id}>
-                            {set.name} ({set.game}) - {set.cards_count} cartas
-                          </option>
-                        ))}
-                      </select>
+                        Todos
+                      </button>
+                      {['Pokemon', 'Yu-Gi-Oh!', 'Magic'].map((game) => (
+                        <button
+                          key={game}
+                          onClick={() => setSetGameFilter(game)}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                            setGameFilter === game ? 'bg-red-600 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          {game}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Set Dropdown */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowSetDropdown(!showSetDropdown)}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-left flex items-center justify-between hover:bg-white/[0.07] transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          {selectedSet ? (
+                            <>
+                              {selectedSet.logo_url && (
+                                <img src={selectedSet.logo_url} alt="" className="h-6 w-auto object-contain" />
+                              )}
+                              <div>
+                                <p className="font-medium">{selectedSet.name}</p>
+                                <p className="text-xs text-zinc-500">{selectedSet.cards_count} cartas</p>
+                              </div>
+                            </>
+                          ) : (
+                            <p className="text-zinc-400">Selecciona un set...</p>
+                          )}
+                        </div>
+                        <ChevronDown className={`h-5 w-5 text-zinc-400 transition-transform ${showSetDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {/* Dropdown List */}
+                      <AnimatePresence>
+                        {showSetDropdown && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute top-full left-0 right-0 mt-2 bg-[#0a0a0a] border border-white/10 rounded-xl max-h-64 overflow-y-auto z-10"
+                          >
+                            {filteredSets.map((set) => (
+                              <button
+                                key={set.id}
+                                onClick={() => {
+                                  setSelectedSet(set);
+                                  setShowSetDropdown(false);
+                                  fetchSetCards(set.id);
+                                }}
+                                className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors ${
+                                  selectedSet?.id === set.id ? 'bg-red-600/10' : ''
+                                }`}
+                              >
+                                {set.logo_url ? (
+                                  <img src={set.logo_url} alt={set.name} className="h-6 w-auto object-contain" />
+                                ) : (
+                                  <div className="h-6 w-10 bg-white/5 rounded flex items-center justify-center">
+                                    <ImageIcon className="h-3 w-3 text-zinc-600" />
+                                  </div>
+                                )}
+                                <div className="text-left flex-1">
+                                  <p className="text-white font-medium">{set.name}</p>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${getGameBadge(set.game)}`}>
+                                      {set.game}
+                                    </span>
+                                    <span className="text-xs text-zinc-500">{set.cards_count} cartas</span>
+                                  </div>
+                                </div>
+                                {selectedSet?.id === set.id && (
+                                  <Check className="h-4 w-4 text-red-500" />
+                                )}
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     {/* Quantity */}
                     <div>
                       <label className="block text-sm text-zinc-400 mb-2">Cantidad por carta</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={setQuantity}
-                        onChange={(e) => setSetQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-red-600/50"
-                      />
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setSetQuantity(Math.max(1, setQuantity - 1))}
+                          className="p-2 bg-white/5 border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={setQuantity}
+                          onChange={(e) => setSetQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-20 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-center focus:outline-none focus:border-red-600/50"
+                        />
+                        <button
+                          onClick={() => setSetQuantity(setQuantity + 1)}
+                          className="p-2 bg-white/5 border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Preview */}
                     {selectedSet && (
-                      <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-zinc-400">Set seleccionado:</span>
+                      <div className="bg-gradient-to-br from-red-600/10 to-transparent border border-red-600/20 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm text-zinc-400">Resumen de asignación</span>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getGameBadge(selectedSet.game)}`}>
                             {selectedSet.game}
                           </span>
                         </div>
-                        <p className="text-white font-medium">{selectedSet.name}</p>
-                        <p className="text-sm text-zinc-500 mt-1">
-                          {setCards.length} cartas × {setQuantity} = <span className="text-amber-400 font-medium">{setCards.length * setQuantity} cartas totales</span>
-                        </p>
+                        <div className="flex items-center gap-3 mb-3">
+                          {selectedSet.logo_url && (
+                            <img src={selectedSet.logo_url} alt={selectedSet.name} className="h-10 w-auto object-contain" />
+                          )}
+                          <div>
+                            <p className="text-white font-semibold">{selectedSet.name}</p>
+                            <p className="text-sm text-zinc-500">{setCards.length} cartas únicas</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                          <span className="text-zinc-400">Total a asignar:</span>
+                          <span className="text-xl font-bold text-amber-400">
+                            {setCards.length * setQuantity} cartas
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -611,7 +754,7 @@ export default function AdminUsersPage() {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
                       <input
                         type="text"
-                        placeholder="Buscar cartas (mínimo 2 caracteres)..."
+                        placeholder="Buscar cartas por nombre (mínimo 2 caracteres)..."
                         value={cardSearch}
                         onChange={(e) => {
                           setCardSearch(e.target.value);
@@ -623,70 +766,96 @@ export default function AdminUsersPage() {
 
                     {/* Search Results */}
                     {searchedCards.length > 0 && (
-                      <div className="bg-white/[0.02] border border-white/5 rounded-xl max-h-48 overflow-y-auto">
-                        {searchedCards.map((card) => (
-                          <button
-                            key={card.id}
-                            onClick={() => toggleCardSelection(card.id)}
-                            className={`w-full p-3 flex items-center justify-between hover:bg-white/5 transition-colors ${
-                              selectedCards.has(card.id) ? 'bg-green-600/10' : ''
-                            }`}
-                          >
-                            <div className="text-left">
-                              <p className="text-white font-medium">{card.name}</p>
-                              <p className="text-xs text-zinc-500">{card.rarity}</p>
-                            </div>
-                            {selectedCards.has(card.id) && (
-                              <Check className="h-5 w-5 text-green-500" />
-                            )}
-                          </button>
-                        ))}
+                      <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
+                        <div className="px-4 py-2 border-b border-white/5">
+                          <p className="text-xs text-zinc-500">Resultados de búsqueda ({searchedCards.length})</p>
+                        </div>
+                        <div className="max-h-48 overflow-y-auto">
+                          {searchedCards.map((card) => {
+                            const isSelected = selectedCards.has(card.id);
+                            return (
+                              <button
+                                key={card.id}
+                                onClick={() => toggleCardSelection(card)}
+                                className={`w-full p-3 flex items-center gap-3 hover:bg-white/5 transition-colors ${
+                                  isSelected ? 'bg-green-600/10' : ''
+                                }`}
+                              >
+                                <CardThumb src={card.image_url} alt={card.name} />
+                                <div className="text-left flex-1">
+                                  <p className="text-white font-medium">{card.name}</p>
+                                  <div className="flex items-center gap-2">
+                                    <RarityBadge rarity={card.rarity || card.rarity_slug || 'Common'} size="sm" />
+                                    {card.set_name && (
+                                      <span className="text-xs text-zinc-500">{card.set_name}</span>
+                                    )}
+                                  </div>
+                                </div>
+                                {isSelected && (
+                                  <div className="h-6 w-6 rounded-full bg-green-600 flex items-center justify-center">
+                                    <Check className="h-4 w-4 text-white" />
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
 
                     {/* Selected Cards */}
                     {selectedCards.size > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm text-zinc-400">Cartas seleccionadas:</p>
-                        {Array.from(selectedCards.entries()).map(([cardId, quantity]) => {
-                          const card = searchedCards.find(c => c.id === cardId);
-                          if (!card) return null;
-                          return (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-zinc-400">Cartas seleccionadas ({selectedCards.size})</p>
+                          <button
+                            onClick={() => setSelectedCards(new Map())}
+                            className="text-xs text-red-400 hover:text-red-300"
+                          >
+                            Limpiar todo
+                          </button>
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {Array.from(selectedCards.entries()).map(([cardId, { card, quantity }]) => (
                             <div
                               key={cardId}
-                              className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl"
+                              className="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-xl"
                             >
-                              <div>
-                                <p className="text-white font-medium">{card.name}</p>
-                                <p className="text-xs text-zinc-500">{card.rarity}</p>
+                              <CardThumb src={card.image_url} alt={card.name} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white font-medium truncate">{card.name}</p>
+                                <RarityBadge rarity={card.rarity || card.rarity_slug || 'Common'} size="sm" />
                               </div>
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => updateCardQuantity(cardId, -1)}
-                                  className="p-1 bg-white/5 rounded-lg text-zinc-400 hover:text-white"
+                                  className="p-1.5 bg-white/5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
                                 >
-                                  <Minus className="h-4 w-4" />
+                                  <Minus className="h-3 w-3" />
                                 </button>
                                 <span className="text-white font-medium w-8 text-center">{quantity}</span>
                                 <button
                                   onClick={() => updateCardQuantity(cardId, 1)}
-                                  className="p-1 bg-white/5 rounded-lg text-zinc-400 hover:text-white"
+                                  className="p-1.5 bg-white/5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
                                 >
-                                  <Plus className="h-4 w-4" />
+                                  <Plus className="h-3 w-3" />
                                 </button>
                                 <button
-                                  onClick={() => toggleCardSelection(cardId)}
-                                  className="p-1 bg-red-600/10 rounded-lg text-red-400 hover:bg-red-600/20"
+                                  onClick={() => removeCard(cardId)}
+                                  className="p-1.5 bg-red-600/10 rounded-lg text-red-400 hover:bg-red-600/20 ml-2"
                                 >
-                                  <X className="h-4 w-4" />
+                                  <X className="h-3 w-3" />
                                 </button>
                               </div>
                             </div>
-                          );
-                        })}
-                        <p className="text-sm text-amber-400 font-medium">
-                          Total: {Array.from(selectedCards.values()).reduce((a, b) => a + b, 0)} cartas
-                        </p>
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                          <span className="text-zinc-400">Total:</span>
+                          <span className="text-lg font-bold text-amber-400">
+                            {Array.from(selectedCards.values()).reduce((a, b) => a + b.quantity, 0)} cartas
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -695,18 +864,18 @@ export default function AdminUsersPage() {
 
               {/* Footer */}
               {!assignSuccess && (
-                <div className="flex gap-3 p-6 border-t border-white/5">
+                <div className="flex gap-3 p-6 border-t border-white/5 bg-[#0a0a0a]/50">
                   <button
                     onClick={() => setShowAssignModal(false)}
                     disabled={assigning}
-                    className="flex-1 py-2 bg-white/5 border border-white/10 rounded-xl text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
+                    className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={assignTab === 'sets' ? handleAssignSet : handleAssignCards}
                     disabled={assigning || (assignTab === 'sets' ? !selectedSet : selectedCards.size === 0)}
-                    className="flex-1 py-2 bg-green-600 rounded-xl text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 py-3 bg-green-600 rounded-xl text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {assigning ? (
                       <>
