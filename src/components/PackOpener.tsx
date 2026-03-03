@@ -61,16 +61,14 @@ const getGameFromPackId = (packId: string) => {
 };
 
 export function PackOpener({ user, onOpen }: PackOpenerProps) {
-  const [selectedPackId, setSelectedPackId] = useState<string | null>(
-    user.inventory.length > 0 ? user.inventory[0].packId : null
-  );
   const [isOpening, setIsOpening] = useState(false);
+  const [openingPackId, setOpeningPackId] = useState<string | null>(null);
   const [revealedCards, setRevealedCards] = useState<Card[]>([]);
 
-  const handleOpen = async () => {
-    if (!selectedPackId) return;
+  const handleSelectPack = async (packId: string) => {
     setIsOpening(true);
-    const cards = await onOpen(selectedPackId);
+    setOpeningPackId(packId);
+    const cards = await onOpen(packId);
     if (cards) {
       setTimeout(() => {
         setRevealedCards(cards);
@@ -78,15 +76,16 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
       }, 1200);
     } else {
       setIsOpening(false);
+      setOpeningPackId(null);
     }
   };
 
   const reset = () => {
     setRevealedCards([]);
-    setSelectedPackId(null);
+    setOpeningPackId(null);
   };
 
-  const selectedPack = user.inventory.find(i => i.packId === selectedPackId);
+  const selectedPack = user.inventory.find(i => i.packId === openingPackId);
 
   return (
     <div className="flex flex-col h-full gap-6 relative">
@@ -96,7 +95,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.05)_0%,transparent_70%)] pointer-events-none" />
 
         <AnimatePresence mode="wait">
-          {!selectedPackId && revealedCards.length === 0 && (
+          {!openingPackId && revealedCards.length === 0 && (
             <motion.div
               key="selection"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -105,15 +104,15 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
               className="flex flex-col items-center gap-8 w-full max-w-4xl"
             >
               <div className="text-center">
-                <h2 className="text-3xl font-black text-white mb-2">Selecciona un Sobre</h2>
-                <p className="text-zinc-400">Tienes {user.inventory.reduce((acc, i) => acc + i.count, 0)} sobres sin abrir en tu inventario.</p>
+                <h2 className="text-3xl font-black text-white mb-2">Tus Sobres</h2>
+                <p className="text-zinc-400">Tienes {user.inventory.reduce((acc, i) => acc + i.count, 0)} sobres sin abrir. ¡Haz clic para abrir!</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
                 {user.inventory.map((item) => (
                   <div
                     key={item.packId}
-                    onClick={() => item.count > 0 && setSelectedPackId(item.packId)}
+                    onClick={() => item.count > 0 && handleSelectPack(item.packId)}
                     className={`relative group rounded-3xl p-1 transition-all duration-300 ${item.count > 0 ? 'cursor-pointer hover:scale-105' : 'opacity-50 grayscale cursor-not-allowed'}`}
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(getGameFromPackId(item.packId))} rounded-3xl blur-md opacity-20 group-hover:opacity-50 transition-opacity`} />
@@ -158,44 +157,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
             </motion.div>
           )}
 
-          {selectedPackId && !isOpening && revealedCards.length === 0 && (
-            <motion.div
-              key="confirm"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
-              className="flex flex-col items-center gap-8"
-            >
-              <div className="w-48 h-72 rounded-2xl overflow-hidden relative shadow-[0_0_50px_rgba(220,38,38,0.3)] animate-pulse bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
-                {selectedPack?.imageUrl ? (
-                  <Image
-                    src={selectedPack.imageUrl}
-                    alt={selectedPack?.name || selectedPackId}
-                    fill
-                    sizes="192px"
-                    className="object-contain"
-                    unoptimized
-                  />
-                ) : (
-                  <>
-                    <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(getGameFromPackId(selectedPackId))} opacity-40`} />
-                    <PackageOpen className="h-16 w-16 text-white/30" />
-                  </>
-                )}
-                <div className="absolute inset-0 border-4 border-white/20 rounded-2xl" />
-              </div>
-
-              <div className="flex gap-4">
-                <Button variant="ghost" onClick={() => setSelectedPackId(null)}>Cancelar</Button>
-                <Button variant="primary" size="lg" onClick={handleOpen} className="px-12 text-lg">
-                  <PackageOpen className="mr-2 h-5 w-5" />
-                  Abrir Sobre
-                </Button>
-              </div>
-            </motion.div>
-          )}
-
-          {isOpening && (
+          {openingPackId && isOpening && (
             <motion.div
               key="opening"
               initial={{ opacity: 0 }}
@@ -203,7 +165,25 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
               exit={{ opacity: 0 }}
               className="flex flex-col items-center justify-center gap-6"
             >
-              <Sparkles className="h-16 w-16 text-red-500 animate-spin" />
+              <div className="w-48 h-72 rounded-2xl overflow-hidden relative shadow-[0_0_50px_rgba(220,38,38,0.3)] animate-pulse bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
+                {selectedPack?.imageUrl ? (
+                  <Image
+                    src={selectedPack.imageUrl}
+                    alt={selectedPack?.name || openingPackId}
+                    fill
+                    sizes="192px"
+                    className="object-contain"
+                    unoptimized
+                  />
+                ) : (
+                  <>
+                    <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(getGameFromPackId(openingPackId))} opacity-40`} />
+                    <PackageOpen className="h-16 w-16 text-white/30" />
+                  </>
+                )}
+                <div className="absolute inset-0 border-4 border-white/20 rounded-2xl" />
+              </div>
+              <Sparkles className="h-12 w-12 text-red-500 animate-spin" />
               <h2 className="text-2xl font-bold text-white animate-pulse">Revelando cartas...</h2>
             </motion.div>
           )}
@@ -225,7 +205,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
                   const isHit = isHitRarity(card.rarity);
                   return (
                     <motion.div
-                      key={card.id}
+                      key={`${card.id}-${index}`}
                       initial={{ opacity: 0, y: 50, scale: 0.8, rotateY: 90 }}
                       animate={{ opacity: 1, y: 0, scale: 1, rotateY: 0 }}
                       transition={{ delay: index * 0.2, type: "spring", bounce: 0.4 }}
