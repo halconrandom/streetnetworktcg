@@ -39,4 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# project docs with sensitive info
+*.md
+!README.md
+
+# blackbox
 .blackboxcli/
