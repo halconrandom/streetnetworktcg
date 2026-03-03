@@ -12,6 +12,7 @@ export interface Card {
   imageUrl: string;
   game: GameType;
   price?: number;
+  quantity?: number;
   
   // Extended Pokemon fields
   supertype?: string;

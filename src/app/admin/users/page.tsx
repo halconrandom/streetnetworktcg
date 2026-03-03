@@ -2,32 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Search, Package, Layers, Shield, UserCog, X, Plus, Minus, Check, Loader2, Image as ImageIcon, ChevronDown } from 'lucide-react';
+import { Users, Search, Package, Layers, Shield, UserCog, X, Plus, Minus, Check, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { RarityBadge } from '@/components/ui/RarityBadge';
-
-function CardThumb({ src, alt, size = 'sm' }: { src: string | null; alt: string; size?: 'sm' | 'md' }) {
-  const [failed, setFailed] = useState(false);
-  const sizeClass = size === 'sm' ? 'h-8 w-8' : 'h-12 w-12';
-
-  if (!src || failed) {
-    return (
-      <div className={`${sizeClass} flex items-center justify-center bg-zinc-800 rounded`}>
-        <ImageIcon className="h-4 w-4 text-zinc-600" />
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className={`${sizeClass} object-cover rounded`}
-      onError={() => setFailed(true)}
-    />
-  );
-}
 
 interface User {
   id: string;
@@ -41,23 +18,14 @@ interface User {
   packs: { pack_id: string; name: string; count: number }[];
 }
 
-interface Set {
+interface Pack {
   id: string;
   name: string;
-  game: string;
-  cards_count: string;
-  logo_url: string | null;
-  tcg_id: string | null;
-}
-
-interface Card {
-  id: string;
-  name: string;
-  rarity: string | null;
-  rarity_slug: string | null;
+  card_count: number;
   image_url: string | null;
-  number: string | null;
-  set_name?: string;
+  set_name: string | null;
+  set_logo: string | null;
+  game: string | null;
 }
 
 const navItems = [
@@ -78,25 +46,16 @@ export default function AdminUsersPage() {
   const [newRole, setNewRole] = useState('');
   const pathname = usePathname();
 
-  // Assign modal state
-  const [assignTab, setAssignTab] = useState<'sets' | 'cards'>('sets');
-  const [sets, setSets] = useState<Set[]>([]);
-  const [selectedSet, setSelectedSet] = useState<Set | null>(null);
-  const [setCards, setSetCards] = useState<Card[]>([]);
-  const [setQuantity, setSetQuantity] = useState(1);
-  const [cardSearch, setCardSearch] = useState('');
-  const [searchedCards, setSearchedCards] = useState<Card[]>([]);
-  const [selectedCards, setSelectedCards] = useState<Map<string, { card: Card; quantity: number }>>(new Map());
+  // Assign packs modal state
+  const [packs, setPacks] = useState<Pack[]>([]);
+  const [selectedPacks, setSelectedPacks] = useState<Map<string, { pack: Pack; quantity: number }>>(new Map());
   const [assigning, setAssigning] = useState(false);
   const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
-  
-  // Dropdown state
-  const [showSetDropdown, setShowSetDropdown] = useState(false);
-  const [setGameFilter, setSetGameFilter] = useState<string>('');
+  const [gameFilter, setGameFilter] = useState<string>('');
 
   useEffect(() => {
     fetchUsers();
-    fetchSets();
+    fetchPacks();
   }, []);
 
   const fetchUsers = async () => {
@@ -112,40 +71,12 @@ export default function AdminUsersPage() {
     }
   };
 
-  const fetchSets = async () => {
+  const fetchPacks = async () => {
     try {
-      const res = await fetch('/api/admin/sets');
+      const res = await fetch('/api/admin/packs');
       if (res.ok) {
         const data = await res.json();
-        setSets(data.sets);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const fetchSetCards = async (setId: string) => {
-    try {
-      const res = await fetch(`/api/admin/sets?setId=${setId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSetCards(data.cards || []);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const searchCards = async (query: string) => {
-    if (query.length < 2) {
-      setSearchedCards([]);
-      return;
-    }
-    try {
-      const res = await fetch(`/api/admin/search-cards?q=${encodeURIComponent(query)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSearchedCards(data.cards || []);
+        setPacks(data.packs);
       }
     } catch (err) {
       console.error(err);
@@ -171,67 +102,32 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleAssignSet = async () => {
-    if (!selectedUser || !selectedSet) return;
+  const handleAssignPacks = async () => {
+    if (!selectedUser || selectedPacks.size === 0) return;
     
     setAssigning(true);
     setAssignSuccess(null);
     
     try {
-      const res = await fetch('/api/admin/assign-set', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetUserId: selectedUser.id,
-          setId: selectedSet.id,
-          quantity: setQuantity
-        }),
-      });
+      // Assign each pack
+      for (const [packId, { quantity }] of selectedPacks) {
+        const res = await fetch('/api/admin/assign-packs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            targetUserId: selectedUser.id,
+            packId,
+            quantity
+          }),
+        });
 
-      const data = await res.json();
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+      }
+
+      const totalPacks = Array.from(selectedPacks.values()).reduce((a, b) => a + b.quantity, 0);
+      setAssignSuccess(`¡${totalPacks} sobres asignados a ${selectedUser.username}!`);
       
-      if (!res.ok) throw new Error(data.error);
-
-      setAssignSuccess(data.message);
-      setTimeout(() => {
-        setShowAssignModal(false);
-        resetAssignState();
-        fetchUsers();
-      }, 1500);
-    } catch (err) {
-      console.error(err);
-      alert(err instanceof Error ? err.message : 'Error al asignar');
-    } finally {
-      setAssigning(false);
-    }
-  };
-
-  const handleAssignCards = async () => {
-    if (!selectedUser || selectedCards.size === 0) return;
-    
-    setAssigning(true);
-    setAssignSuccess(null);
-    
-    const cards = Array.from(selectedCards.entries()).map(([cardId, { quantity }]) => ({
-      cardId,
-      quantity
-    }));
-
-    try {
-      const res = await fetch('/api/admin/assign-cards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetUserId: selectedUser.id,
-          cards
-        }),
-      });
-
-      const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.error);
-
-      setAssignSuccess(data.message);
       setTimeout(() => {
         setShowAssignModal(false);
         resetAssignState();
@@ -246,16 +142,9 @@ export default function AdminUsersPage() {
   };
 
   const resetAssignState = () => {
-    setAssignTab('sets');
-    setSelectedSet(null);
-    setSetCards([]);
-    setSetQuantity(1);
-    setCardSearch('');
-    setSearchedCards([]);
-    setSelectedCards(new Map());
+    setSelectedPacks(new Map());
     setAssignSuccess(null);
-    setShowSetDropdown(false);
-    setSetGameFilter('');
+    setGameFilter('');
   };
 
   const openAssignModal = (user: User) => {
@@ -264,30 +153,30 @@ export default function AdminUsersPage() {
     resetAssignState();
   };
 
-  const toggleCardSelection = (card: Card) => {
-    const newSelection = new Map(selectedCards);
-    if (newSelection.has(card.id)) {
-      newSelection.delete(card.id);
+  const togglePackSelection = (pack: Pack) => {
+    const newSelection = new Map(selectedPacks);
+    if (newSelection.has(pack.id)) {
+      newSelection.delete(pack.id);
     } else {
-      newSelection.set(card.id, { card, quantity: 1 });
+      newSelection.set(pack.id, { pack, quantity: 1 });
     }
-    setSelectedCards(newSelection);
+    setSelectedPacks(newSelection);
   };
 
-  const updateCardQuantity = (cardId: string, delta: number) => {
-    const newSelection = new Map(selectedCards);
-    const current = newSelection.get(cardId);
+  const updatePackQuantity = (packId: string, delta: number) => {
+    const newSelection = new Map(selectedPacks);
+    const current = newSelection.get(packId);
     if (current) {
       const newQty = Math.max(1, current.quantity + delta);
-      newSelection.set(cardId, { ...current, quantity: newQty });
-      setSelectedCards(newSelection);
+      newSelection.set(packId, { ...current, quantity: newQty });
+      setSelectedPacks(newSelection);
     }
   };
 
-  const removeCard = (cardId: string) => {
-    const newSelection = new Map(selectedCards);
-    newSelection.delete(cardId);
-    setSelectedCards(newSelection);
+  const removePack = (packId: string) => {
+    const newSelection = new Map(selectedPacks);
+    newSelection.delete(packId);
+    setSelectedPacks(newSelection);
   };
 
   const filteredUsers = users.filter(
@@ -296,9 +185,9 @@ export default function AdminUsersPage() {
       u.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filteredSets = setGameFilter
-    ? sets.filter(s => s.game === setGameFilter)
-    : sets;
+  const filteredPacks = gameFilter
+    ? packs.filter(p => p.game === gameFilter)
+    : packs;
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -311,7 +200,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  const getGameBadge = (game: string) => {
+  const getGameBadge = (game: string | null) => {
     switch (game) {
       case 'Pokemon':
         return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
@@ -530,7 +419,7 @@ export default function AdminUsersPage() {
         )}
       </AnimatePresence>
 
-      {/* Assign Modal */}
+      {/* Assign Packs Modal */}
       <AnimatePresence>
         {showAssignModal && selectedUser && (
           <motion.div
@@ -550,7 +439,7 @@ export default function AdminUsersPage() {
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-white/5">
                 <div>
-                  <h2 className="text-xl font-bold text-white">Asignar Items</h2>
+                  <h2 className="text-xl font-bold text-white">Asignar Sobres</h2>
                   <p className="text-sm text-zinc-500">
                     Usuario: <span className="text-white font-medium">{selectedUser.username}</span>
                   </p>
@@ -563,34 +452,8 @@ export default function AdminUsersPage() {
                 </button>
               </div>
 
-              {/* Tabs */}
-              <div className="flex border-b border-white/5">
-                <button
-                  onClick={() => setAssignTab('sets')}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-                    assignTab === 'sets'
-                      ? 'text-red-500 border-b-2 border-red-500 bg-red-600/5'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  <Layers className="h-4 w-4" />
-                  Asignar Set Completo
-                </button>
-                <button
-                  onClick={() => setAssignTab('cards')}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-                    assignTab === 'cards'
-                      ? 'text-red-500 border-b-2 border-red-500 bg-red-600/5'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  <Package className="h-4 w-4" />
-                  Cartas Específicas
-                </button>
-              </div>
-
               {/* Content */}
-              <div className="p-6 overflow-y-auto max-h-[50vh]">
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
                 {assignSuccess ? (
                   <div className="flex flex-col items-center justify-center py-8">
                     <div className="h-16 w-16 rounded-full bg-green-600/20 flex items-center justify-center mb-4">
@@ -598,14 +461,14 @@ export default function AdminUsersPage() {
                     </div>
                     <p className="text-green-400 font-medium text-center">{assignSuccess}</p>
                   </div>
-                ) : assignTab === 'sets' ? (
+                ) : (
                   <div className="space-y-6">
                     {/* Game Filter */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <button
-                        onClick={() => setSetGameFilter('')}
+                        onClick={() => setGameFilter('')}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                          setGameFilter === '' ? 'bg-red-600 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
+                          gameFilter === '' ? 'bg-red-600 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
                         }`}
                       >
                         Todos
@@ -613,9 +476,9 @@ export default function AdminUsersPage() {
                       {['Pokemon', 'Yu-Gi-Oh!', 'Magic'].map((game) => (
                         <button
                           key={game}
-                          onClick={() => setSetGameFilter(game)}
+                          onClick={() => setGameFilter(game)}
                           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                            setGameFilter === game ? 'bg-red-600 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
+                            gameFilter === game ? 'bg-red-600 text-white' : 'bg-white/5 text-zinc-400 hover:text-white'
                           }`}
                         >
                           {game}
@@ -623,225 +486,107 @@ export default function AdminUsersPage() {
                       ))}
                     </div>
 
-                    {/* Set Dropdown */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowSetDropdown(!showSetDropdown)}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-left flex items-center justify-between hover:bg-white/[0.07] transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          {selectedSet ? (
-                            <>
-                              {selectedSet.logo_url && (
-                                <img src={selectedSet.logo_url} alt="" className="h-6 w-auto object-contain" />
-                              )}
-                              <div>
-                                <p className="font-medium">{selectedSet.name}</p>
-                                <p className="text-xs text-zinc-500">{selectedSet.cards_count} cartas</p>
-                              </div>
-                            </>
-                          ) : (
-                            <p className="text-zinc-400">Selecciona un set...</p>
-                          )}
-                        </div>
-                        <ChevronDown className={`h-5 w-5 text-zinc-400 transition-transform ${showSetDropdown ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {/* Dropdown List */}
-                      <AnimatePresence>
-                        {showSetDropdown && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="absolute top-full left-0 right-0 mt-2 bg-[#0a0a0a] border border-white/10 rounded-xl max-h-64 overflow-y-auto z-10"
-                          >
-                            {filteredSets.map((set) => (
-                              <button
-                                key={set.id}
-                                onClick={() => {
-                                  setSelectedSet(set);
-                                  setShowSetDropdown(false);
-                                  fetchSetCards(set.id);
-                                }}
-                                className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors ${
-                                  selectedSet?.id === set.id ? 'bg-red-600/10' : ''
-                                }`}
-                              >
-                                {set.logo_url ? (
-                                  <img src={set.logo_url} alt={set.name} className="h-6 w-auto object-contain" />
-                                ) : (
-                                  <div className="h-6 w-10 bg-white/5 rounded flex items-center justify-center">
-                                    <ImageIcon className="h-3 w-3 text-zinc-600" />
-                                  </div>
-                                )}
-                                <div className="text-left flex-1">
-                                  <p className="text-white font-medium">{set.name}</p>
-                                  <div className="flex items-center gap-2">
-                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${getGameBadge(set.game)}`}>
-                                      {set.game}
-                                    </span>
-                                    <span className="text-xs text-zinc-500">{set.cards_count} cartas</span>
-                                  </div>
-                                </div>
-                                {selectedSet?.id === set.id && (
-                                  <Check className="h-4 w-4 text-red-500" />
-                                )}
-                              </button>
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    {/* Quantity */}
-                    <div>
-                      <label className="block text-sm text-zinc-400 mb-2">Cantidad por carta</label>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => setSetQuantity(Math.max(1, setQuantity - 1))}
-                          className="p-2 bg-white/5 border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                        <input
-                          type="number"
-                          min="1"
-                          value={setQuantity}
-                          onChange={(e) => setSetQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="w-20 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-center focus:outline-none focus:border-red-600/50"
-                        />
-                        <button
-                          onClick={() => setSetQuantity(setQuantity + 1)}
-                          className="p-2 bg-white/5 border border-white/10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Preview */}
-                    {selectedSet && (
-                      <div className="bg-gradient-to-br from-red-600/10 to-transparent border border-red-600/20 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm text-zinc-400">Resumen de asignación</span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getGameBadge(selectedSet.game)}`}>
-                            {selectedSet.game}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 mb-3">
-                          {selectedSet.logo_url && (
-                            <img src={selectedSet.logo_url} alt={selectedSet.name} className="h-10 w-auto object-contain" />
-                          )}
-                          <div>
-                            <p className="text-white font-semibold">{selectedSet.name}</p>
-                            <p className="text-sm text-zinc-500">{setCards.length} cartas únicas</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                          <span className="text-zinc-400">Total a asignar:</span>
-                          <span className="text-xl font-bold text-amber-400">
-                            {setCards.length * setQuantity} cartas
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Card Search */}
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
-                      <input
-                        type="text"
-                        placeholder="Buscar cartas por nombre (mínimo 2 caracteres)..."
-                        value={cardSearch}
-                        onChange={(e) => {
-                          setCardSearch(e.target.value);
-                          searchCards(e.target.value);
-                        }}
-                        className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-red-600/50"
-                      />
-                    </div>
-
-                    {/* Search Results */}
-                    {searchedCards.length > 0 && (
-                      <div className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden">
-                        <div className="px-4 py-2 border-b border-white/5">
-                          <p className="text-xs text-zinc-500">Resultados de búsqueda ({searchedCards.length})</p>
-                        </div>
-                        <div className="max-h-48 overflow-y-auto">
-                          {searchedCards.map((card) => {
-                            const isSelected = selectedCards.has(card.id);
-                            return (
-                              <button
-                                key={card.id}
-                                onClick={() => toggleCardSelection(card)}
-                                className={`w-full p-3 flex items-center gap-3 hover:bg-white/5 transition-colors ${
-                                  isSelected ? 'bg-green-600/10' : ''
-                                }`}
-                              >
-                                <CardThumb src={card.image_url} alt={card.name} />
-                                <div className="text-left flex-1">
-                                  <p className="text-white font-medium">{card.name}</p>
-                                  <div className="flex items-center gap-2">
-                                    <RarityBadge rarity={card.rarity || card.rarity_slug || 'Common'} size="sm" />
-                                    {card.set_name && (
-                                      <span className="text-xs text-zinc-500">{card.set_name}</span>
-                                    )}
-                                  </div>
-                                </div>
-                                {isSelected && (
-                                  <div className="h-6 w-6 rounded-full bg-green-600 flex items-center justify-center">
-                                    <Check className="h-4 w-4 text-white" />
-                                  </div>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Selected Cards */}
-                    {selectedCards.size > 0 && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm text-zinc-400">Cartas seleccionadas ({selectedCards.size})</p>
+                    {/* Packs Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {filteredPacks.map((pack) => {
+                        const isSelected = selectedPacks.has(pack.id);
+                        return (
                           <button
-                            onClick={() => setSelectedCards(new Map())}
+                            key={pack.id}
+                            onClick={() => togglePackSelection(pack)}
+                            className={`p-4 rounded-xl border text-left transition-all ${
+                              isSelected
+                                ? 'bg-green-600/10 border-green-600/30'
+                                : 'bg-white/[0.02] border-white/5 hover:bg-white/5'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="h-12 w-12 rounded-lg bg-zinc-800 flex items-center justify-center overflow-hidden">
+                                {pack.image_url || pack.set_logo ? (
+                                  <img
+                                    src={pack.image_url || pack.set_logo || ''}
+                                    alt={pack.name}
+                                    className="h-full w-full object-contain"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <Package className="h-6 w-6 text-zinc-600" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white font-medium truncate">{pack.name}</p>
+                                <p className="text-xs text-zinc-500 truncate">{pack.set_name || 'Pack personalizado'}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${getGameBadge(pack.game)}`}>
+                                {pack.game || 'N/A'}
+                              </span>
+                              <span className="text-xs text-zinc-500">{pack.card_count} cartas</span>
+                            </div>
+                            {isSelected && (
+                              <div className="mt-2 flex items-center justify-end">
+                                <div className="h-5 w-5 rounded-full bg-green-600 flex items-center justify-center">
+                                  <Check className="h-3 w-3 text-white" />
+                                </div>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Selected Packs */}
+                    {selectedPacks.size > 0 && (
+                      <div className="space-y-3 border-t border-white/5 pt-4">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-zinc-400">Sobres seleccionados ({selectedPacks.size})</p>
+                          <button
+                            onClick={() => setSelectedPacks(new Map())}
                             className="text-xs text-red-400 hover:text-red-300"
                           >
                             Limpiar todo
                           </button>
                         </div>
                         <div className="space-y-2 max-h-48 overflow-y-auto">
-                          {Array.from(selectedCards.entries()).map(([cardId, { card, quantity }]) => (
+                          {Array.from(selectedPacks.entries()).map(([packId, { pack, quantity }]) => (
                             <div
-                              key={cardId}
+                              key={packId}
                               className="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-xl"
                             >
-                              <CardThumb src={card.image_url} alt={card.name} />
+                              <div className="h-10 w-10 rounded-lg bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
+                                {pack.image_url || pack.set_logo ? (
+                                  <img
+                                    src={pack.image_url || pack.set_logo || ''}
+                                    alt={pack.name}
+                                    className="h-full w-full object-contain"
+                                  />
+                                ) : (
+                                  <Package className="h-5 w-5 text-zinc-600" />
+                                )}
+                              </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-white font-medium truncate">{card.name}</p>
-                                <RarityBadge rarity={card.rarity || card.rarity_slug || 'Common'} size="sm" />
+                                <p className="text-white font-medium truncate">{pack.name}</p>
+                                <p className="text-xs text-zinc-500">{pack.card_count} cartas c/u</p>
                               </div>
                               <div className="flex items-center gap-2">
                                 <button
-                                  onClick={() => updateCardQuantity(cardId, -1)}
+                                  onClick={() => updatePackQuantity(packId, -1)}
                                   className="p-1.5 bg-white/5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
                                 >
                                   <Minus className="h-3 w-3" />
                                 </button>
                                 <span className="text-white font-medium w-8 text-center">{quantity}</span>
                                 <button
-                                  onClick={() => updateCardQuantity(cardId, 1)}
+                                  onClick={() => updatePackQuantity(packId, 1)}
                                   className="p-1.5 bg-white/5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10"
                                 >
                                   <Plus className="h-3 w-3" />
                                 </button>
                                 <button
-                                  onClick={() => removeCard(cardId)}
+                                  onClick={() => removePack(packId)}
                                   className="p-1.5 bg-red-600/10 rounded-lg text-red-400 hover:bg-red-600/20 ml-2"
                                 >
                                   <X className="h-3 w-3" />
@@ -851,9 +596,9 @@ export default function AdminUsersPage() {
                           ))}
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                          <span className="text-zinc-400">Total:</span>
+                          <span className="text-zinc-400">Total de sobres:</span>
                           <span className="text-lg font-bold text-amber-400">
-                            {Array.from(selectedCards.values()).reduce((a, b) => a + b.quantity, 0)} cartas
+                            {Array.from(selectedPacks.values()).reduce((a, b) => a + b.quantity, 0)} sobres
                           </span>
                         </div>
                       </div>
@@ -873,8 +618,8 @@ export default function AdminUsersPage() {
                     Cancelar
                   </button>
                   <button
-                    onClick={assignTab === 'sets' ? handleAssignSet : handleAssignCards}
-                    disabled={assigning || (assignTab === 'sets' ? !selectedSet : selectedCards.size === 0)}
+                    onClick={handleAssignPacks}
+                    disabled={assigning || selectedPacks.size === 0}
                     className="flex-1 py-3 bg-green-600 rounded-xl text-white font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {assigning ? (
@@ -885,7 +630,7 @@ export default function AdminUsersPage() {
                     ) : (
                       <>
                         <Check className="h-4 w-4" />
-                        Asignar
+                        Asignar Sobres
                       </>
                     )}
                   </button>

@@ -121,6 +121,13 @@ export function Collection({ collection }: CollectionProps) {
 
                 {/* Content */}
                 <div className="absolute inset-0 p-3 flex flex-col justify-between bg-gradient-to-t from-black/90 via-black/20 to-transparent">
+                  {/* Quantity Badge - Top Left */}
+                  {card.quantity && card.quantity > 1 && (
+                    <div className="absolute top-2 left-2 h-6 w-6 rounded-full bg-amber-500/90 flex items-center justify-center">
+                      <span className="text-xs font-bold text-black">{card.quantity}</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-end">
                     <Badge variant={getBadgeVariant(card.game)} className="text-[10px] px-2 py-0">
                       {card.game}
