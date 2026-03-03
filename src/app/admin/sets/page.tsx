@@ -168,12 +168,8 @@ export default function AdminSetsPage() {
     return rarityColors[rarity] || 'bg-zinc-500/20 text-zinc-400';
   };
 
-  // Fix logo URL - add .png extension if missing
-  const getLogoUrl = (url: string | null) => {
-    if (!url) return null;
-    if (url.endsWith('.png') || url.endsWith('.jpg') || url.endsWith('.webp')) return url;
-    return `${url}.png`;
-  };
+  // Logo URLs should already be correct from import
+  const getLogoUrl = (url: string | null) => url;
 
   // Fix card image URL - TCGdex needs proper format
   const getCardImageUrl = (card: Card, set: Set | null) => {

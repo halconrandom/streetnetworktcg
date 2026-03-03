@@ -128,11 +128,12 @@ async function upsertSet(set: TCGdexSet): Promise<string> {
   let logoUrl = set.logo || null;
   let symbolUrl = set.symbol || null;
   
-  if (logoUrl && !logoUrl.endsWith('.webp') && !logoUrl.endsWith('.png')) {
-    logoUrl = `${logoUrl}/logo.webp`;
+  // Add extension if missing - the API returns URLs like /en/base/basep/logo
+  if (logoUrl && !logoUrl.match(/\.(webp|png|jpg)$/i)) {
+    logoUrl = `${logoUrl}.webp`;
   }
-  if (symbolUrl && !symbolUrl.endsWith('.webp') && !symbolUrl.endsWith('.png')) {
-    symbolUrl = `${symbolUrl}/symbol.webp`;
+  if (symbolUrl && !symbolUrl.match(/\.(webp|png|jpg)$/i)) {
+    symbolUrl = `${symbolUrl}.webp`;
   }
 
   const result = await query(`
