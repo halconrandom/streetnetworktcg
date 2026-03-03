@@ -607,7 +607,7 @@ export default function AdminUsersPage() {
                           {filteredPacks.length} packs con <span className="text-amber-400 font-medium">{pokemonSearch}</span>
                           {filteredPacks.some(p => p.pokemon_count) && (
                             <span className="text-zinc-400 ml-2">
-                              ({filteredPacks.reduce((a, p) => a + (p.pokemon_count || 0), 0)} cartas encontradas)
+                              ({filteredPacks.reduce((a, p) => a + (Number(p.pokemon_count) || 0), 0)} cartas encontradas)
                             </span>
                           )}
                         </>
