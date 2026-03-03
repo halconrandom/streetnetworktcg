@@ -9,9 +9,9 @@ import Link from "next/link";
 type ViewType = 'dashboard' | 'collection' | 'packs';
 
 const navItems: { id: ViewType; label: string; icon: typeof Gamepad2 }[] = [
-  { id: "dashboard", label: "Dashboard", icon: Gamepad2 },
-  { id: "collection", label: "Collection", icon: Library },
-  { id: "packs", label: "Open Packs", icon: PackageOpen },
+  { id: "dashboard", label: "Inicio", icon: Gamepad2 },
+  { id: "collection", label: "Colección", icon: Library },
+  { id: "packs", label: "Abrir Sobres", icon: PackageOpen },
 ];
 
 interface TopNavProps {
@@ -32,7 +32,7 @@ export function TopNav({ activeTab, setActiveTab, username = "Player", role = "u
           <Gamepad2 className="h-6 w-6" />
         </div>
         <span className="text-xl font-bold tracking-tight text-white hidden sm:block">
-          Street <span className="text-red-600">Games</span>
+          Street <span className="text-red-600">Games</span> & <span className="text-amber-500">Books</span>
         </span>
       </div>
 

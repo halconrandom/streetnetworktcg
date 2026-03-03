@@ -17,9 +17,9 @@ interface Transaction {
 }
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Shield, href: '/admin' },
+  { id: 'dashboard', label: 'Panel', icon: Shield, href: '/admin' },
   { id: 'users', label: 'Usuarios', icon: Users, href: '/admin/users' },
-  { id: 'packs', label: 'Packs', icon: Package, href: '/admin/packs' },
+  { id: 'packs', label: 'Sobres', icon: Package, href: '/admin/packs' },
   { id: 'sets', label: 'Sets', icon: Layers, href: '/admin/sets' },
   { id: 'transactions', label: 'Transacciones', icon: UserCog, href: '/admin/transactions' },
 ];

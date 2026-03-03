@@ -1,7 +1,6 @@
 "use client";
 
 import { GlassPanel } from "./ui/GlassPanel";
-import { Button } from "./ui/Button";
 import { Package, TrendingUp, Library } from "lucide-react";
 
 type ViewType = 'dashboard' | 'collection' | 'packs';
@@ -16,10 +15,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       {/* Hero Section */}
       <div className="text-center max-w-2xl">
         <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
-          Street <span className="text-red-600">TCG</span>
+          Street <span className="text-red-600">Games</span> & <span className="text-amber-500">Books</span>
         </h1>
         <p className="text-zinc-400 text-lg">
-          Collect and trade trading cards in your GTA V roleplay server
+          Colecciona e intercambia cartas en tu servidor de GTA V roleplay
         </p>
       </div>
 
@@ -31,8 +30,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <Package className="h-8 w-8 text-red-500" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white mb-1">Open Packs</h3>
-            <p className="text-sm text-zinc-500">Open your booster packs</p>
+            <h3 className="text-lg font-bold text-white mb-1">Abrir Sobres</h3>
+            <p className="text-sm text-zinc-500">Abre tus sobres de cartas</p>
           </div>
         </GlassPanel>
 
@@ -42,8 +41,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <Library className="h-8 w-8 text-amber-500" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white mb-1">Collection</h3>
-            <p className="text-sm text-zinc-500">View your cards</p>
+            <h3 className="text-lg font-bold text-white mb-1">Colección</h3>
+            <p className="text-sm text-zinc-500">Ver tus cartas</p>
           </div>
         </GlassPanel>
 
@@ -53,15 +52,15 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <TrendingUp className="h-8 w-8 text-zinc-400" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white mb-1">Stats</h3>
-            <p className="text-sm text-zinc-500">Track your progress</p>
+            <h3 className="text-lg font-bold text-white mb-1">Estadísticas</h3>
+            <p className="text-sm text-zinc-500">Tu progreso</p>
           </div>
         </GlassPanel>
       </div>
 
       {/* Info */}
       <div className="text-center text-zinc-500 text-sm max-w-md">
-        <p>Ask an admin to assign you packs to get started</p>
+        <p>Pide sobres a un administrador para empezar</p>
       </div>
     </div>
   );

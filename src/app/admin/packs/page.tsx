@@ -27,9 +27,9 @@ interface Set {
 }
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Shield, href: '/admin' },
+  { id: 'dashboard', label: 'Panel', icon: Shield, href: '/admin' },
   { id: 'users', label: 'Usuarios', icon: Users, href: '/admin/users' },
-  { id: 'packs', label: 'Packs', icon: Package, href: '/admin/packs' },
+  { id: 'packs', label: 'Sobres', icon: Package, href: '/admin/packs' },
   { id: 'sets', label: 'Sets', icon: Layers, href: '/admin/sets' },
   { id: 'transactions', label: 'Transacciones', icon: UserCog, href: '/admin/transactions' },
 ];
@@ -211,8 +211,8 @@ export default function AdminPacksPage() {
           >
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2">Packs</h1>
-                <p className="text-zinc-400">{packs.length} packs disponibles</p>
+                <h1 className="text-3xl font-bold text-white mb-2">Sobres</h1>
+                <p className="text-zinc-400">{packs.length} sobres disponibles</p>
               </div>
               <button
                 onClick={() => {
@@ -223,7 +223,7 @@ export default function AdminPacksPage() {
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 rounded-xl text-white font-medium hover:bg-red-700 transition-colors"
               >
                 <Plus className="h-5 w-5" />
-                Nuevo Pack
+                Nuevo Sobre
               </button>
             </div>
 
@@ -300,7 +300,7 @@ export default function AdminPacksPage() {
             className="bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 w-full max-w-md"
           >
             <h2 className="text-xl font-bold text-white mb-4">
-              {editingPack ? 'Editar Pack' : 'Nuevo Pack'}
+              {editingPack ? 'Editar Sobre' : 'Nuevo Sobre'}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">

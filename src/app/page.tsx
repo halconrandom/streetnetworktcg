@@ -74,7 +74,7 @@ export default function Home() {
 
         <div className="flex flex-col items-center space-y-4 relative z-10">
           <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-          <p className="font-bold text-[10px] uppercase tracking-widest text-zinc-500">Initializing Street Games...</p>
+          <p className="font-bold text-[10px] uppercase tracking-widest text-zinc-500">Cargando Street Games...</p>
         </div>
       </div>
     );

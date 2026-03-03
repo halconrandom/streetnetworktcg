@@ -24,9 +24,9 @@ interface Transaction {
 }
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Shield, href: '/admin' },
+  { id: 'dashboard', label: 'Panel', icon: Shield, href: '/admin' },
   { id: 'users', label: 'Usuarios', icon: Users, href: '/admin/users' },
-  { id: 'packs', label: 'Packs', icon: Package, href: '/admin/packs' },
+  { id: 'packs', label: 'Sobres', icon: Package, href: '/admin/packs' },
   { id: 'sets', label: 'Sets', icon: Layers, href: '/admin/sets' },
   { id: 'transactions', label: 'Transacciones', icon: History, href: '/admin/transactions' },
 ];
@@ -135,7 +135,7 @@ export default function AdminDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">Panel de Control</h1>
             <p className="text-zinc-400 mb-8">Resumen de la plataforma</p>
 
             {/* Stats Grid */}

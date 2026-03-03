@@ -78,8 +78,8 @@ export function Collection({ collection }: CollectionProps) {
             <Layers className="h-6 w-6 text-red-500" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">My Collection</h2>
-            <p className="text-sm text-zinc-400">{collection.length} Cards Total</p>
+            <h2 className="text-xl font-bold text-white">Mi Colección</h2>
+            <p className="text-sm text-zinc-400">{collection.length} Cartas en Total</p>
           </div>
         </div>
 
@@ -88,7 +88,7 @@ export function Collection({ collection }: CollectionProps) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
             <input
               type="text"
-              placeholder="Search cards..."
+              placeholder="Buscar cartas..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-10 pl-10 pr-4 rounded-full bg-white/[0.03] border border-white/10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-600/50 transition-all"
@@ -137,7 +137,7 @@ export function Collection({ collection }: CollectionProps) {
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-zinc-500 gap-4">
             <Search className="h-12 w-12 opacity-20" />
-            <p>No cards found matching your search.</p>
+            <p>No se encontraron cartas con ese criterio.</p>
           </div>
         )}
       </div>

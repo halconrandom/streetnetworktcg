@@ -27,7 +27,7 @@ export default function SignInPage() {
             <Gamepad2 className="h-7 w-7 text-red-600" />
           </div>
           <span className="text-2xl font-bold tracking-tight text-white">
-            Street <span className="text-red-600">Games</span>
+            Street <span className="text-red-600">Games</span> & <span className="text-amber-500">Books</span>
           </span>
         </div>
 

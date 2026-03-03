@@ -103,8 +103,8 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
               className="flex flex-col items-center gap-8 w-full max-w-4xl"
             >
               <div className="text-center">
-                <h2 className="text-3xl font-black text-white mb-2">Select a Pack to Open</h2>
-                <p className="text-zinc-400">You have {user.inventory.reduce((acc, i) => acc + i.count, 0)} unopened packs in your inventory.</p>
+                <h2 className="text-3xl font-black text-white mb-2">Selecciona un Sobre</h2>
+                <p className="text-zinc-400">Tienes {user.inventory.reduce((acc, i) => acc + i.count, 0)} sobres sin abrir en tu inventario.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
@@ -127,7 +127,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
                       </div>
 
                       <div className="text-center mt-2">
-                        <h3 className="text-lg font-bold text-white">{item.packId.includes('p1') ? 'Base Set Booster' : item.packId.includes('y1') ? 'Legend of Blue Eyes' : 'Alpha Edition'}</h3>
+                        <h3 className="text-lg font-bold text-white">{item.name || item.packId}</h3>
                         <p className="text-xs text-zinc-500 uppercase tracking-wider">{getGameFromPackId(item.packId)}</p>
                       </div>
                     </div>
@@ -136,7 +136,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
 
                 {user.inventory.length === 0 && (
                   <div className="col-span-3 py-12 text-center border border-dashed border-white/10 rounded-3xl">
-                    <p className="text-zinc-500">No packs in inventory. Ask an admin to assign you some packs!</p>
+                    <p className="text-zinc-500">No tienes sobres. Pide a un administrador que te asigne algunos.</p>
                   </div>
                 )}
               </div>
@@ -158,10 +158,10 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
               </div>
 
               <div className="flex gap-4">
-                <Button variant="ghost" onClick={() => setSelectedPackId(null)}>Cancel</Button>
+                <Button variant="ghost" onClick={() => setSelectedPackId(null)}>Cancelar</Button>
                 <Button variant="primary" size="lg" onClick={handleOpen} className="px-12 text-lg">
                   <PackageOpen className="mr-2 h-5 w-5" />
-                  Tear Open
+                  Abrir Sobre
                 </Button>
               </div>
             </motion.div>
@@ -176,7 +176,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
               className="flex flex-col items-center justify-center gap-6"
             >
               <Sparkles className="h-16 w-16 text-red-500 animate-spin" />
-              <h2 className="text-2xl font-bold text-white animate-pulse">Revealing Cards...</h2>
+              <h2 className="text-2xl font-bold text-white animate-pulse">Revelando cartas...</h2>
             </motion.div>
           )}
 
@@ -188,8 +188,8 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
               className="flex flex-col items-center gap-12 w-full"
             >
               <div className="text-center">
-                <h2 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-amber-500 mb-2">Pack Opened!</h2>
-                <p className="text-zinc-400">Cards added to your collection.</p>
+                <h2 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-amber-500 mb-2">¡Sobre Abierto!</h2>
+                <p className="text-zinc-400">Cartas añadidas a tu colección.</p>
               </div>
 
               <div className="flex flex-wrap justify-center gap-6">
@@ -207,7 +207,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
 
                     <div className="absolute inset-0 p-4 flex flex-col justify-between bg-gradient-to-t from-black/90 via-black/20 to-transparent">
                       <div className="flex justify-end">
-                        <Badge variant={card.rarity.includes("Ultra") || card.rarity.includes("Mythic") ? "red" : "zinc"} className="text-[10px]">
+                        <Badge variant={card.rarity.includes("Ultra") || card.rarity.includes("Mythic") || card.rarity.includes("Rare") ? "red" : "zinc"} className="text-[10px]">
                           {card.rarity}
                         </Badge>
                       </div>
@@ -218,7 +218,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
               </div>
 
               <Button variant="glass" onClick={reset} className="mt-4">
-                Open Another Pack
+                Abrir Otro Sobre
               </Button>
             </motion.div>
           )}
