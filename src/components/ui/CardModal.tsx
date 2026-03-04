@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import { X, ImageOff } from "lucide-react";
 import { RarityBadge } from "./RarityBadge";
@@ -32,14 +31,11 @@ function CardImage({ src, alt }: { src: string | null | undefined; alt: string }
   }
 
   return (
-    <div className="w-[320px] h-[450px] md:w-[380px] md:h-[530px] relative rounded-2xl overflow-hidden">
-      <Image
+    <div className="w-[320px] h-[450px] md:w-[380px] md:h-[530px] relative rounded-2xl overflow-hidden bg-zinc-900">
+      <img
         src={src}
         alt={alt}
-        fill
-        sizes="(max-width: 768px) 320px, 380px"
-        className="object-contain"
-        unoptimized
+        className="w-full h-full object-contain"
       />
     </div>
   );
