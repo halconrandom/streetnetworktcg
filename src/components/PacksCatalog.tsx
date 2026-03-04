@@ -24,7 +24,7 @@ const getPackColor = (game: string) => {
     case "Yu-Gi-Oh!":
       return "from-blue-400 to-indigo-600";
     case "Magic":
-      return "from-zinc-700 to-black";
+      return "from-amber-500 to-purple-700";
     default:
       return "from-zinc-600 to-zinc-800";
   }
