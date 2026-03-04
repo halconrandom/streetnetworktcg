@@ -24,14 +24,14 @@ interface CardModalProps {
 function CardImage({ src, alt }: { src: string | null | undefined; alt: string }) {
   if (!src) {
     return (
-      <div className="w-[320px] h-[450px] md:w-[380px] md:h-[530px] flex items-center justify-center bg-zinc-900 rounded-2xl">
-        <ImageOff className="h-16 w-16 text-zinc-700" />
+      <div className="w-[280px] h-[390px] sm:w-[320px] sm:h-[450px] flex items-center justify-center bg-zinc-900 rounded-2xl">
+        <ImageOff className="h-12 w-12 text-zinc-700" />
       </div>
     );
   }
 
   return (
-    <div className="w-[320px] h-[450px] md:w-[380px] md:h-[530px] relative rounded-2xl overflow-hidden bg-zinc-900">
+    <div className="w-[280px] h-[390px] sm:w-[320px] sm:h-[450px] relative rounded-2xl overflow-hidden bg-zinc-900">
       <img
         src={src}
         alt={alt}
@@ -42,19 +42,6 @@ function CardImage({ src, alt }: { src: string | null | undefined; alt: string }
 }
 
 export function CardModal({ card, isOpen, onClose }: CardModalProps) {
-  // Debug: log card data when modal opens
-  useEffect(() => {
-    if (isOpen && card) {
-      console.log('CardModal opened with card:', {
-        name: card.name,
-        imageUrl: card.imageUrl,
-        image_url: card.image_url,
-        game: card.game,
-        rarity: card.rarity
-      });
-    }
-  }, [isOpen, card]);
-
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -99,7 +86,7 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto"
           onClick={onClose}
         >
           {/* Backdrop */}
@@ -107,7 +94,7 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
           />
 
           {/* Modal Content */}
@@ -116,7 +103,7 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative z-10 flex flex-col items-center gap-4"
+            className="relative z-10 flex flex-col items-center gap-3 my-8"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
@@ -143,9 +130,9 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-center max-w-[380px]"
+              className="text-center max-w-[320px]"
             >
-              <h3 className="text-2xl font-bold text-white mb-2">{card.name}</h3>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">{card.name}</h3>
               <div className="flex items-center justify-center gap-3 mb-2">
                 <RarityBadge rarity={card.rarity} size="md" />
                 <span className="text-sm text-zinc-400">{card.game}</span>
