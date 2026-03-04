@@ -31,11 +31,12 @@ export async function GET() {
 
         const user = userResult.rows[0];
 
-        // Fetch unopened packs
+        // Fetch unopened packs with game info from set
         const packsResult = await query(`
-            SELECT p.id as "packId", p.name, up.count, p.image_url as "imageUrl"
+            SELECT p.id as "packId", p.name, up.count, p.image_url as "imageUrl", s.game
             FROM sn_tcg_user_packs up
             JOIN sn_tcg_packs p ON up.pack_id = p.id
+            LEFT JOIN sn_tcg_sets s ON p.set_id = s.id
             WHERE up.user_id = $1 AND up.count > 0
         `, [user.id]);
 

@@ -104,6 +104,7 @@ export interface InventoryItem {
   count: number;
   name?: string;
   imageUrl?: string | null;
+  game?: GameType;
 }
 
 export interface UserProfile {

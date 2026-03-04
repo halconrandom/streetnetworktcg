@@ -54,12 +54,6 @@ const getPackColor = (game: string) => {
   }
 };
 
-const getGameFromPackId = (packId: string) => {
-  if (packId.includes("p1") || packId.includes("pokemon")) return "Pokemon";
-  if (packId.includes("y1") || packId.includes("yugioh")) return "Yu-Gi-Oh!";
-  return "Magic";
-};
-
 export function PackOpener({ user, onOpen }: PackOpenerProps) {
   const [isOpening, setIsOpening] = useState(false);
   const [openingPackId, setOpeningPackId] = useState<string | null>(null);
@@ -115,7 +109,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
                     onClick={() => item.count > 0 && handleSelectPack(item.packId)}
                     className={`relative group rounded-3xl p-1 transition-all duration-300 ${item.count > 0 ? 'cursor-pointer hover:scale-105' : 'opacity-50 grayscale cursor-not-allowed'}`}
                   >
-                    <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(getGameFromPackId(item.packId))} rounded-3xl blur-md opacity-20 group-hover:opacity-50 transition-opacity`} />
+                    <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(item.game || 'Magic')} rounded-3xl blur-md opacity-20 group-hover:opacity-50 transition-opacity`} />
                     <div className="relative h-full bg-[#080808] border border-white/10 rounded-3xl p-4 flex flex-col items-center gap-4">
                       <div className="absolute top-4 right-4">
                         <Badge variant={item.count > 0 ? "red" : "zinc"}>x{item.count}</Badge>
@@ -133,7 +127,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
                           />
                         ) : (
                           <>
-                            <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(getGameFromPackId(item.packId))} opacity-40`} />
+                            <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(item.game || 'Magic')} opacity-40`} />
                             <PackageOpen className="h-12 w-12 text-white/30" />
                           </>
                         )}
@@ -142,7 +136,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
 
                       <div className="text-center mt-2">
                         <h3 className="text-lg font-bold text-white">{item.name || item.packId}</h3>
-                        <p className="text-xs text-zinc-500 uppercase tracking-wider">{getGameFromPackId(item.packId)}</p>
+                        <p className="text-xs text-zinc-500 uppercase tracking-wider">{item.game || 'Magic'}</p>
                       </div>
                     </div>
                   </div>
@@ -177,7 +171,7 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
                   />
                 ) : (
                   <>
-                    <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(getGameFromPackId(openingPackId))} opacity-40`} />
+                    <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(selectedPack?.game || 'Magic')} opacity-40`} />
                     <PackageOpen className="h-16 w-16 text-white/30" />
                   </>
                 )}
