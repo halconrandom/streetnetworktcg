@@ -53,11 +53,8 @@ export default function SignInPage() {
                   main: "w-full",
                   headerTitle: "hidden",
                   headerSubtitle: "hidden",
-                  socialButtonsBlockButton: "w-full rounded-xl bg-white hover:bg-zinc-100 transition-all py-3 px-4 shadow-md border border-white/20",
-                  socialButtonsBlockButtonText: "text-zinc-900 font-semibold",
-                  socialButtonsBlockButtonArrow: "text-zinc-900",
-                  dividerLine: "bg-white/10",
-                  dividerText: "text-zinc-500 text-xs",
+                  socialButtonsBlock: "hidden",
+                  divider: "hidden",
                   formFieldInput: "w-full rounded-xl bg-zinc-900 border border-white/10 text-white placeholder-zinc-500 focus:border-red-600/50 focus:ring-red-600/20 py-3 px-4",
                   formFieldLabel: "text-zinc-400 text-sm font-medium mb-2",
                   formButtonPrimary: "w-full rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium py-3 transition-colors shadow-lg shadow-red-600/20",
@@ -73,7 +70,7 @@ export default function SignInPage() {
                   colorTextOnPrimaryBackground: 'white',
                   colorBackground: 'transparent',
                   colorText: 'white',
-                  colorInputBackground: 'rgba(255,255,255,0.05)',
+                  colorInputBackground: '#18181b',
                   colorInputText: 'white',
                 }
               }}
