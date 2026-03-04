@@ -1,0 +1,24 @@
+========================================
+Magic: The Gathering Import Script
+Scryfall API - Oracle Cards
+========================================
+
+Testing database connection...
+Database connected!
+
+Fetching bulk data info from Scryfall...
+Oracle Cards updated at: 2026-03-04T10:02:19.535+00:00
+Download URL: https://data.scryfall.io/oracle-cards/oracle-cards-20260304100219.json
+
+Downloading Oracle Cards (this may take a few minutes)...
+Downloaded: 0.0 MBDownloaded: 0.0 MBDownloaded: 0.0 MBDownloaded: 0.0 MBDownloaded: 0.0 MBDownloaded: 0.0 MBDownloaded: 0.0 MBDownloaded: 0.0 MBDownloaded: 0.1 MBDownloaded: 0.1 MBDownloaded: 0.1 MBDownloaded: 0.1 MBDownloaded: 0.1 MBDownloaded: 0.1 MBDownloaded: 0.1 MBDownloaded: 0.1 MBDownloaded: 10.0 MBDownloaded: 10.0 MBDownloaded: 10.0 MBDownloaded: 10.1 MBDownloaded: 10.1 MBDownloaded: 10.1 MBDownloaded: 20.0 MBDownloaded: 20.0 MBDownloaded: 20.0 MBDownloaded: 20.1 MBDownloaded: 20.1 MBDownloaded: 20.1 MBDownloaded: 20.1 MBDownloaded: 30.0 MBDownloaded: 30.0 MBDownloaded: 30.0 MBDownloaded: 30.1 MBDownloaded: 30.1 MBDownloaded: 30.1 MBDownloaded: 40.0 MBDownloaded: 40.0 MBDownloaded: 40.0 MBDownloaded: 40.0 MBDownloaded: 40.1 MBDownloaded: 40.1 MBDownloaded: 40.1 MBDownloaded: 50.0 MBDownloaded: 50.0 MBDownloaded: 50.0 MBDownloaded: 50.1 MBDownloaded: 50.1 MBDownloaded: 50.1 MBDownloaded: 50.1 MBDownloaded: 50.1 MBDownloaded: 60.0 MBDownloaded: 60.0 MBDownloaded: 60.0 MBDownloaded: 60.1 MBDownloaded: 60.1 MBDownloaded: 60.1 MBDownloaded: 70.0 MBDownloaded: 70.0 MBDownloaded: 70.0 MBDownloaded: 70.0 MBDownloaded: 70.1 MBDownloaded: 70.1 MBDownloaded: 70.1 MBDownloaded: 80.0 MBDownloaded: 80.0 MBDownloaded: 80.0 MBDownloaded: 80.1 MBDownloaded: 80.1 MBDownloaded: 80.1 MBDownloaded: 90.0 MBDownloaded: 90.0 MBDownloaded: 90.0 MBDownloaded: 90.0 MBDownloaded: 90.1 MBDownloaded: 90.1 MBDownloaded: 90.1 MBDownloaded: 100.0 MBDownloaded: 100.0 MBDownloaded: 100.0 MBDownloaded: 100.1 MBDownloaded: 100.1 MBDownloaded: 100.1 MBDownloaded: 110.0 MBDownloaded: 110.0 MBDownloaded: 110.0 MBDownloaded: 110.1 MBDownloaded: 110.1 MBDownloaded: 110.1 MBDownloaded: 120.0 MBDownloaded: 120.0 MBDownloaded: 120.0 MBDownloaded: 120.0 MBDownloaded: 120.1 MBDownloaded: 120.1 MBDownloaded: 120.1 MBDownloaded: 130.0 MBDownloaded: 130.0 MBDownloaded: 130.0 MBDownloaded: 130.1 MBDownloaded: 130.1 MBDownloaded: 130.1 MBDownloaded: 140.0 MBDownloaded: 140.0 MBDownloaded: 140.0 MBDownloaded: 140.1 MBDownloaded: 140.1 MBDownloaded: 140.1 MBDownloaded: 140.1 MBDownloaded: 150.0 MBDownloaded: 150.0 MBDownloaded: 150.0 MBDownloaded: 150.1 MBDownloaded: 150.1 MBDownloaded: 150.1 MBDownloaded: 150.1 MBDownloaded: 160.0 MBDownloaded: 160.0 MBDownloaded: 160.0 MBDownloaded: 160.1 MBDownloaded: 160.1 MBDownloaded: 160.1 MB
+Downloaded 169.8 MB
+Parsing JSON...
+
+Import failed: Error: incorrect header check
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at Zlib.zlibOnError [as onerror] (node:zlib:190:17) {
+  errno: -3,
+  code: 'Z_DATA_ERROR'
+}
