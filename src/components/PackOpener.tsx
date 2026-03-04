@@ -6,6 +6,7 @@ import { GlassPanel } from "./ui/GlassPanel";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
 import { RarityBadge, RarityGlow } from "./ui/RarityBadge";
+import { CardModal } from "./ui/CardModal";
 import { PackageOpen, Sparkles, ImageOff } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Card, UserProfile } from "@/lib/types";
@@ -48,7 +49,7 @@ const getPackColor = (game: string) => {
     case "Yu-Gi-Oh!":
       return "from-blue-400 to-indigo-600";
     case "Magic":
-      return "from-zinc-700 to-black";
+      return "from-amber-500 to-purple-700";
     default:
       return "from-zinc-600 to-zinc-800";
   }
@@ -58,6 +59,18 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
   const [isOpening, setIsOpening] = useState(false);
   const [openingPackId, setOpeningPackId] = useState<string | null>(null);
   const [revealedCards, setRevealedCards] = useState<Card[]>([]);
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openCardModal = (card: Card) => {
+    setSelectedCard(card);
+    setIsModalOpen(true);
+  };
+
+  const closeCardModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => setSelectedCard(null), 200);
+  };
 
   const handleSelectPack = async (packId: string) => {
     setIsOpening(true);
@@ -203,17 +216,23 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
                       initial={{ opacity: 0, y: 50, scale: 0.8, rotateY: 90 }}
                       animate={{ opacity: 1, y: 0, scale: 1, rotateY: 0 }}
                       transition={{ delay: index * 0.2, type: "spring", bounce: 0.4 }}
+                      whileHover={{ scale: 1.08, y: -8 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => openCardModal(card)}
                       className={`relative w-48 h-72 rounded-2xl overflow-hidden group cursor-pointer ${isHit ? 'ring-2 ring-amber-400/50' : ''}`}
                     >
                       <div className={`absolute inset-0 bg-gradient-to-br ${getPackColor(card.game)} opacity-20 group-hover:opacity-40 transition-opacity`} />
                       <CardImage src={card.imageUrl} alt={card.name} />
-                      <div className="absolute inset-0 border-2 border-white/20 rounded-2xl group-hover:border-white/50 transition-colors" />
+                      <div className="absolute inset-0 border-2 border-white/20 rounded-2xl group-hover:border-white/50 group-hover:shadow-lg group-hover:shadow-white/10 transition-all" />
+
+                      {/* Hover Glow */}
+                      <div className={`absolute inset-0 bg-gradient-to-t ${getPackColor(card.game)} opacity-0 group-hover:opacity-30 transition-opacity rounded-2xl`} />
 
                       <div className="absolute inset-0 p-4 flex flex-col justify-between bg-gradient-to-t from-black/90 via-black/20 to-transparent">
                         <div className="flex justify-end">
                           <RarityBadge rarity={card.rarity} size="sm" />
                         </div>
-                        <h3 className="text-lg font-bold text-white leading-tight">{card.name}</h3>
+                        <h3 className="text-lg font-bold text-white leading-tight group-hover:text-amber-400 transition-colors">{card.name}</h3>
                       </div>
                     </motion.div>
                   );
@@ -227,6 +246,9 @@ export function PackOpener({ user, onOpen }: PackOpenerProps) {
           )}
         </AnimatePresence>
       </GlassPanel>
+
+      {/* Card Modal */}
+      <CardModal card={selectedCard} isOpen={isModalOpen} onClose={closeCardModal} />
     </div>
   );
 }
