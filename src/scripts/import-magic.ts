@@ -129,6 +129,49 @@ interface ScryfallCard {
 // API FUNCTIONS
 // ============================================
 
+interface ScryfallSet {
+  object: string;
+  id: string;
+  code: string;
+  name: string;
+  uri: string;
+  scryfall_uri: string;
+  search_uri: string;
+  released_at: string | null;
+  set_type: string;
+  card_count: number;
+  digital: boolean;
+  nonfoil_only: boolean;
+  foil_only: boolean;
+  icon_svg_uri: string;
+  block_code?: string;
+  block?: string;
+  parent_set_code?: string;
+}
+
+// Cache for set icons
+let setIconsMap: Map<string, string> = new Map();
+
+async function fetchSetIcons(): Promise<Map<string, string>> {
+  console.log('Fetching set icons from Scryfall...');
+  
+  const response = await fetch('https://api.scryfall.com/sets');
+  if (!response.ok) {
+    throw new Error(`Failed to fetch sets: ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  const sets: ScryfallSet[] = data.data;
+  
+  const iconsMap = new Map<string, string>();
+  for (const set of sets) {
+    iconsMap.set(set.code.toLowerCase(), set.icon_svg_uri);
+  }
+  
+  console.log(`Loaded ${iconsMap.size} set icons`);
+  return iconsMap;
+}
+
 async function getOracleCardsUrl(): Promise<string> {
   console.log('Fetching bulk data info from Scryfall...');
   
@@ -218,19 +261,24 @@ async function downloadAndParseCards(downloadUrl: string): Promise<ScryfallCard[
 // ============================================
 
 async function upsertSet(card: ScryfallCard): Promise<string> {
+  // Get the icon SVG URI for this set
+  const symbolUrl = setIconsMap.get(card.set.toLowerCase()) || null;
+  
   const result = await query(`
-    INSERT INTO sn_tcg_sets (name, game, series, release_date, tcg_id)
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO sn_tcg_sets (name, game, series, release_date, symbol_url, tcg_id)
+    VALUES ($1, $2, $3, $4, $5, $6)
     ON CONFLICT (tcg_id) DO UPDATE SET
       name = EXCLUDED.name,
       series = EXCLUDED.series,
-      release_date = EXCLUDED.release_date
+      release_date = EXCLUDED.release_date,
+      symbol_url = COALESCE(EXCLUDED.symbol_url, sn_tcg_sets.symbol_url)
     RETURNING id
   `, [
     card.set_name,
     'Magic',
     card.set_type || 'Unknown',
     card.released_at || null,
+    symbolUrl,
     card.set,
   ]);
   
@@ -370,6 +418,9 @@ async function importMagicTcg(): Promise<void> {
     console.log('Testing database connection...');
     await query('SELECT 1');
     console.log('Database connected!\n');
+    
+    // Fetch set icons first
+    setIconsMap = await fetchSetIcons();
     
     // Get download URL
     const downloadUrl = await getOracleCardsUrl();
