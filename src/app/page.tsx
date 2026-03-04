@@ -5,11 +5,12 @@ import { Layout } from '@/components/Layout';
 import { Dashboard } from '@/components/Dashboard';
 import { Collection } from '@/components/Collection';
 import { PackOpener } from '@/components/PackOpener';
+import { PacksCatalog } from '@/components/PacksCatalog';
 import { UserProfile, Card } from '@/lib/types';
 import { SignedIn, SignedOut, SignIn } from '@clerk/nextjs';
 
 export default function Home() {
-  const [view, setView] = useState<'dashboard' | 'collection' | 'packs'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'collection' | 'packs' | 'catalog'>('dashboard');
   const [user, setUser] = useState<UserProfile | null>(null);
   const [collection, setCollection] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,6 +121,7 @@ export default function Home() {
             {view === 'dashboard' && <Dashboard onNavigate={setView} />}
             {view === 'collection' && <Collection collection={collection} />}
             {view === 'packs' && <PackOpener user={user} onOpen={handleOpen} />}
+            {view === 'catalog' && <PacksCatalog />}
           </Layout>
         )}
       </SignedIn>

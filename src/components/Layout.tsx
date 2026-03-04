@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 import { TopNav } from "./TopNav";
 import { motion, AnimatePresence } from "motion/react";
 
-type ViewType = 'dashboard' | 'collection' | 'packs';
+type ViewType = 'dashboard' | 'collection' | 'packs' | 'catalog';
 
 interface LayoutProps {
   children: ReactNode;

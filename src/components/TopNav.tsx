@@ -1,17 +1,18 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Gamepad2, Library, PackageOpen, Search, Bell, Shield } from "lucide-react";
+import { Gamepad2, Library, PackageOpen, Layers, Search, Bell, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton } from "@clerk/nextjs";
 import Link from "next/link";
 
-type ViewType = 'dashboard' | 'collection' | 'packs';
+type ViewType = 'dashboard' | 'collection' | 'packs' | 'catalog';
 
 const navItems: { id: ViewType; label: string; icon: typeof Gamepad2 }[] = [
   { id: "dashboard", label: "Inicio", icon: Gamepad2 },
   { id: "collection", label: "Colección", icon: Library },
   { id: "packs", label: "Abrir Sobres", icon: PackageOpen },
+  { id: "catalog", label: "Catálogo", icon: Layers },
 ];
 
 interface TopNavProps {

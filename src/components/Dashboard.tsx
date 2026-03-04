@@ -1,10 +1,10 @@
 "use client";
 
 import { GlassPanel } from "./ui/GlassPanel";
-import { Package, TrendingUp, Library } from "lucide-react";
+import { Package, TrendingUp, Library, Layers } from "lucide-react";
 import { motion } from "motion/react";
 
-type ViewType = 'dashboard' | 'collection' | 'packs';
+type ViewType = 'dashboard' | 'collection' | 'packs' | 'catalog';
 
 interface DashboardProps {
   onNavigate?: (tab: ViewType) => void;
@@ -174,18 +174,18 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         {/* Stats */}
         <GlassPanel
           className="p-6 flex flex-col items-center gap-4 text-center group hover:bg-white/[0.04] transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg hover:shadow-zinc-600/10"
-          onClick={() => onNavigate?.("collection")}
+          onClick={() => onNavigate?.("catalog")}
         >
           <motion.div
             whileHover={{ rotate: [0, -10, 10, 0] }}
             transition={{ duration: 0.3 }}
             className="h-16 w-16 rounded-2xl bg-zinc-600/10 border border-zinc-600/20 flex items-center justify-center group-hover:bg-zinc-600/20 transition-colors"
           >
-            <TrendingUp className="h-8 w-8 text-zinc-400" />
+            <Layers className="h-8 w-8 text-zinc-400" />
           </motion.div>
           <div>
-            <h3 className="text-lg font-bold text-white mb-1">Estadísticas</h3>
-            <p className="text-sm text-zinc-500">Tu progreso</p>
+            <h3 className="text-lg font-bold text-white mb-1">Catálogo</h3>
+            <p className="text-sm text-zinc-500">Ver sobres disponibles</p>
           </div>
         </GlassPanel>
       </motion.div>
