@@ -98,6 +98,8 @@ export default function Home() {
                   card: "bg-transparent shadow-none p-0",
                   headerTitle: "hidden",
                   headerSubtitle: "hidden",
+                  socialButtonsBlock: "hidden",
+                  divider: "hidden",
                   formFieldInput: "w-full rounded-xl bg-white/5 border border-white/10 text-white placeholder-zinc-500 focus:border-red-600/50 focus:ring-red-600/20 py-3 px-4",
                   formFieldLabel: "text-zinc-400 text-sm font-medium mb-2",
                   formButtonPrimary: "w-full rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium py-3 transition-colors shadow-lg shadow-red-600/20",
