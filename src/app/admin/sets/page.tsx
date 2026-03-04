@@ -165,8 +165,8 @@ export default function AdminSetsPage() {
     setCardsModal({ open: false, set: null, cards: [], loading: false });
   };
 
-  const openCardModal = (card: Card) => {
-    setSelectedCard(card);
+  const openCardModal = (card: Card, game: string) => {
+    setSelectedCard({ ...card, game });
     setIsCardModalOpen(true);
   };
 
@@ -540,7 +540,7 @@ export default function AdminSetsPage() {
                         key={card.id}
                         whileHover={{ scale: 1.05, y: -4 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => openCardModal({ ...card, game: cardsModal.set?.game || 'Pokemon' })}
+                        onClick={() => openCardModal(card, cardsModal.set?.game || 'Pokemon')}
                         className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden group cursor-pointer"
                       >
                         <div className="aspect-[3/4] relative bg-zinc-800 overflow-hidden">
@@ -573,7 +573,12 @@ export default function AdminSetsPage() {
 
       {/* Card Detail Modal */}
       <CardModal
-        card={selectedCard ? { ...selectedCard, imageUrl: selectedCard.image_url, game: cardsModal.set?.game || 'Pokemon' } : null}
+        card={selectedCard ? {
+          name: selectedCard.name,
+          rarity: selectedCard.rarity || selectedCard.rarity_slug || 'Common',
+          game: selectedCard.game || 'Pokemon',
+          imageUrl: selectedCard.image_url
+        } : null}
         isOpen={isCardModalOpen}
         onClose={closeCardModal}
       />

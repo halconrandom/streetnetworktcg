@@ -42,6 +42,19 @@ function CardImage({ src, alt }: { src: string | null | undefined; alt: string }
 }
 
 export function CardModal({ card, isOpen, onClose }: CardModalProps) {
+  // Debug: log card data when modal opens
+  useEffect(() => {
+    if (isOpen && card) {
+      console.log('CardModal opened with card:', {
+        name: card.name,
+        imageUrl: card.imageUrl,
+        image_url: card.image_url,
+        game: card.game,
+        rarity: card.rarity
+      });
+    }
+  }, [isOpen, card]);
+
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {

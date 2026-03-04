@@ -205,7 +205,17 @@ export function Collection({ collection }: CollectionProps) {
       </div>
 
       {/* Card Modal */}
-      <CardModal card={selectedCard} isOpen={isModalOpen} onClose={closeCardModal} />
+      <CardModal
+        card={selectedCard ? {
+          name: selectedCard.name,
+          rarity: selectedCard.rarity,
+          game: selectedCard.game,
+          imageUrl: selectedCard.imageUrl,
+          quantity: selectedCard.quantity
+        } : null}
+        isOpen={isModalOpen}
+        onClose={closeCardModal}
+      />
     </div>
   );
 }
