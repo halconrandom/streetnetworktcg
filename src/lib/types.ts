@@ -13,6 +13,8 @@ export interface Card {
   game: GameType;
   price?: number;
   quantity?: number;
+  cardId?: string;
+  acquiredAt?: string;
 
   // Extended Pokemon fields
   supertype?: string;

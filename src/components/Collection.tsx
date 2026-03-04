@@ -6,7 +6,7 @@ import { GlassPanel } from "./ui/GlassPanel";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
 import { RarityBadge } from "./ui/RarityBadge";
-import { Search, Filter, Layers, ImageOff } from "lucide-react";
+import { Search, Filter, Layers, ImageOff, Copy, Check, IdCard } from "lucide-react";
 import { motion } from "motion/react";
 import { Card } from "@/lib/types";
 
@@ -40,6 +40,17 @@ interface CollectionProps {
 
 export function Collection({ collection }: CollectionProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyToClipboard = async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error("Error al copiar:", err);
+    }
+  };
 
   const filteredCards = collection.filter(card =>
     card.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -128,7 +139,7 @@ export function Collection({ collection }: CollectionProps) {
                     </div>
                   )}
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-1">
                     <Badge variant={getBadgeVariant(card.game)} className="text-[10px] px-2 py-0">
                       {card.game}
                     </Badge>
@@ -137,6 +148,24 @@ export function Collection({ collection }: CollectionProps) {
                   <div>
                     <h3 className="text-sm font-bold text-white leading-tight mb-1 group-hover:text-red-400 transition-colors">{card.name}</h3>
                     <RarityBadge rarity={card.rarity} size="sm" />
+                    
+                    {/* Copy ID Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyToClipboard(card.id);
+                      }}
+                      className="mt-2 flex items-center gap-1 text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                      title="Copiar ID para Discord"
+                    >
+                      <IdCard className="h-3 w-3" />
+                      <span className="font-mono truncate max-w-[100px]">{card.id.slice(0, 8)}...</span>
+                      {copiedId === card.id ? (
+                        <Check className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </button>
                   </div>
                 </div>
               </motion.div>

@@ -24,13 +24,15 @@ export async function GET() {
 
         const result = await query(`
             SELECT 
-                c.id, 
+                i.id,
+                c.id as "cardId",
                 c.name, 
                 c.type, 
                 c.rarity, 
                 c.image_url as "imageUrl", 
                 c.game,
-                i.quantity
+                i.quantity,
+                i.acquired_at as "acquiredAt"
             FROM sn_tcg_inventory i
             JOIN sn_tcg_cards c ON i.card_id = c.id
             WHERE i.user_id = $1
