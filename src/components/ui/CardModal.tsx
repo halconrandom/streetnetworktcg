@@ -5,29 +5,34 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import { X, ImageOff } from "lucide-react";
 import { RarityBadge } from "./RarityBadge";
-import { Card } from "@/lib/types";
+
+// Flexible card type that works with both formats
+interface CardModalCard {
+  name: string;
+  rarity: string;
+  game: string;
+  quantity?: number;
+  imageUrl?: string | null;
+  image_url?: string | null;
+}
 
 interface CardModalProps {
-  card: Card | null;
+  card: CardModalCard | null;
   isOpen: boolean;
   onClose: () => void;
 }
 
-function CardImage({ src, alt, size }: { src: string | null | undefined; alt: string; size: "modal" | "full" }) {
-  const sizeClasses = size === "modal" 
-    ? "w-[320px] h-[450px] md:w-[380px] md:h-[530px]" 
-    : "w-full h-full";
-
+function CardImage({ src, alt }: { src: string | null | undefined; alt: string }) {
   if (!src) {
     return (
-      <div className={`${sizeClasses} flex items-center justify-center bg-zinc-900 rounded-2xl`}>
+      <div className="w-[320px] h-[450px] md:w-[380px] md:h-[530px] flex items-center justify-center bg-zinc-900 rounded-2xl">
         <ImageOff className="h-16 w-16 text-zinc-700" />
       </div>
     );
   }
 
   return (
-    <div className={`${sizeClasses} relative rounded-2xl overflow-hidden`}>
+    <div className="w-[320px] h-[450px] md:w-[380px] md:h-[530px] relative rounded-2xl overflow-hidden">
       <Image
         src={src}
         alt={alt}
@@ -75,6 +80,9 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
     }
   };
 
+  // Get image URL from either format
+  const imageUrl = card?.imageUrl || card?.image_url || null;
+
   return (
     <AnimatePresence>
       {isOpen && card && (
@@ -117,7 +125,7 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
               
               {/* Card */}
               <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20">
-                <CardImage src={card.imageUrl} alt={card.name} size="modal" />
+                <CardImage src={imageUrl} alt={card.name} />
               </div>
             </div>
 

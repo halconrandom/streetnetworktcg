@@ -6,6 +6,7 @@ import { Layers, ChevronDown, Shield, Users, Package, UserCog, X, Image as Image
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { RarityBadge } from '@/components/ui/RarityBadge';
+import { CardModal } from '@/components/ui/CardModal';
 
 function CardThumb({ src, alt }: { src: string | null; alt: string }) {
   const [failed, setFailed] = useState(false);
@@ -60,6 +61,7 @@ interface Card {
   image_url: string | null;
   number: string | null;
   supertype: string | null;
+  game?: string;
 }
 
 const navItems = [
@@ -83,6 +85,8 @@ export default function AdminSetsPage() {
     cards: [],
     loading: false,
   });
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -159,6 +163,16 @@ export default function AdminSetsPage() {
 
   const closeCardsModal = () => {
     setCardsModal({ open: false, set: null, cards: [], loading: false });
+  };
+
+  const openCardModal = (card: Card) => {
+    setSelectedCard(card);
+    setIsCardModalOpen(true);
+  };
+
+  const closeCardModal = () => {
+    setIsCardModalOpen(false);
+    setTimeout(() => setSelectedCard(null), 200);
   };
 
   const getGameBadge = (game: string) => {
@@ -522,15 +536,19 @@ export default function AdminSetsPage() {
                 ) : cardsModal.cards.length > 0 ? (
                   <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {cardsModal.cards.map((card) => (
-                      <div
+                      <motion.div
                         key={card.id}
-                        className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden group"
+                        whileHover={{ scale: 1.05, y: -4 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => openCardModal({ ...card, game: cardsModal.set?.game || 'Pokemon' })}
+                        className="bg-white/[0.02] border border-white/5 rounded-xl overflow-hidden group cursor-pointer"
                       >
-                        <div className="aspect-[3/4] relative bg-zinc-800">
+                        <div className="aspect-[3/4] relative bg-zinc-800 overflow-hidden">
                           <CardThumb src={getCardImageUrl(card, cardsModal.set)} alt={card.name} />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <div className="p-2">
-                          <p className="text-xs font-medium text-white truncate">{card.name}</p>
+                          <p className="text-xs font-medium text-white truncate group-hover:text-amber-400 transition-colors">{card.name}</p>
                           <div className="flex items-center justify-between mt-1">
                             <RarityBadge rarity={card.rarity || card.rarity_slug || 'Common'} size="sm" />
                             {card.number && (
@@ -538,7 +556,7 @@ export default function AdminSetsPage() {
                             )}
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 ) : (
@@ -552,6 +570,13 @@ export default function AdminSetsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Card Detail Modal */}
+      <CardModal
+        card={selectedCard ? { ...selectedCard, imageUrl: selectedCard.image_url, game: cardsModal.set?.game || 'Pokemon' } : null}
+        isOpen={isCardModalOpen}
+        onClose={closeCardModal}
+      />
     </div>
   );
 }
