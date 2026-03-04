@@ -13,6 +13,8 @@ interface Pack {
   game: string;
   cardCount?: number;
   imageUrl?: string | null;
+  setLogoUrl?: string | null;
+  setName?: string;
 }
 
 const getPackColor = (game: string) => {
@@ -146,9 +148,9 @@ export function PacksCatalog() {
                 
                 {/* Card Image or Placeholder */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  {pack.imageUrl ? (
+                  {pack.imageUrl || pack.setLogoUrl ? (
                     <Image
-                      src={pack.imageUrl}
+                      src={pack.imageUrl || pack.setLogoUrl || ""}
                       alt={pack.name}
                       fill
                       sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
