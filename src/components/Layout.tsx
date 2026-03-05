@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { TopNav } from "./TopNav";
+import { MobileNav } from "./MobileNav";
 import { motion, AnimatePresence } from "motion/react";
 
 type ViewType = 'dashboard' | 'collection' | 'packs' | 'catalog';
@@ -26,7 +27,8 @@ export function Layout({ children, activeTab, setActiveTab, username, role }: La
       <div className="relative z-10 flex-1 flex flex-col w-full max-w-[1600px] mx-auto">
         <TopNav activeTab={activeTab} setActiveTab={setActiveTab} username={username} role={role} />
         
-        <main className="flex-1 px-8 pb-8 flex flex-col relative">
+        {/* Main content with responsive padding and bottom nav spacing */}
+        <main className="flex-1 px-4 sm:px-6 md:px-8 pb-20 md:pb-8 flex flex-col relative">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -41,6 +43,9 @@ export function Layout({ children, activeTab, setActiveTab, username, role }: La
           </AnimatePresence>
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
 }

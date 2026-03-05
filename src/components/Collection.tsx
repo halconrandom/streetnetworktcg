@@ -17,7 +17,7 @@ function CardImage({ src, alt }: { src: string | null | undefined; alt: string }
   if (!src || error) {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-        <ImageOff className="h-8 w-8 text-zinc-700" />
+        <ImageOff className="h-6 w-6 sm:h-8 sm:w-8 text-zinc-700" />
       </div>
     );
   }
@@ -27,7 +27,7 @@ function CardImage({ src, alt }: { src: string | null | undefined; alt: string }
       src={src}
       alt={alt}
       fill
-      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
+      sizes="(max-width: 400px) 50vw, (max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
       className="object-contain group-hover:scale-110 transition-transform duration-500"
       unoptimized
       onError={() => setError(true)}
@@ -95,20 +95,20 @@ export function Collection({ collection }: CollectionProps) {
   };
 
   return (
-    <div className="flex flex-col h-full gap-6">
+    <div className="flex flex-col h-full gap-4 sm:gap-6">
       {/* Header & Controls */}
-      <GlassPanel className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <GlassPanel className="p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="h-12 w-12 rounded-xl bg-red-600/20 border border-red-600/30 flex items-center justify-center">
-            <Layers className="h-6 w-6 text-red-500" />
+          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-red-600/20 border border-red-600/30 flex items-center justify-center shrink-0">
+            <Layers className="h-5 w-5 sm:h-6 sm:w-6 text-red-500" />
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-white">Mi Colección</h2>
-            <p className="text-sm text-zinc-400">{collection.length} Cartas en Total</p>
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold text-white">Mi Colección</h2>
+            <p className="text-xs sm:text-sm text-zinc-400">{collection.length} Cartas en Total</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
             <input
@@ -116,29 +116,29 @@ export function Collection({ collection }: CollectionProps) {
               placeholder="Buscar cartas..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 rounded-full bg-white/[0.03] border border-white/10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-600/50 transition-all"
+              className="w-full h-10 pl-10 pr-4 rounded-full bg-white/[0.03] border border-white/10 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-600/50 transition-all touch-target"
             />
           </div>
-          <Button variant="glass" size="icon" className="rounded-full shrink-0">
+          <Button variant="glass" size="icon" className="rounded-full shrink-0 touch-target">
             <Filter className="h-4 w-4" />
           </Button>
         </div>
       </GlassPanel>
 
       {/* Grid */}
-      <div className="flex-1 overflow-y-auto pr-2 pb-4">
+      <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 pb-4">
         {filteredCards.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
             {filteredCards.map((card, index) => (
               <motion.div
                 key={card.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                whileHover={{ scale: 1.05, y: -5 }}
+                transition={{ delay: Math.min(index * 0.02, 0.5) }}
+                whileHover={{ scale: 1.03, y: -3 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => openCardModal(card)}
-                className="group relative aspect-[2.5/3.5] rounded-2xl overflow-hidden cursor-pointer"
+                className="group relative aspect-[2.5/3.5] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer touch-manipulation"
               >
                 {/* Background Gradient */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${getCardColor(card.game)} opacity-10 group-hover:opacity-25 transition-opacity duration-300`} />
@@ -147,40 +147,40 @@ export function Collection({ collection }: CollectionProps) {
                 <CardImage src={card.imageUrl} alt={card.name} />
 
                 {/* Card Border/Glass */}
-                <div className="absolute inset-0 border-2 border-white/10 rounded-2xl group-hover:border-white/40 group-hover:shadow-lg group-hover:shadow-white/5 transition-all duration-300" />
+                <div className="absolute inset-0 border-2 border-white/10 rounded-xl sm:rounded-2xl group-hover:border-white/40 group-hover:shadow-lg group-hover:shadow-white/5 transition-all duration-300" />
 
                 {/* Hover Glow Effect */}
-                <div className={`absolute inset-0 bg-gradient-to-t ${getCardColor(card.game)} opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-2xl`} />
+                <div className={`absolute inset-0 bg-gradient-to-t ${getCardColor(card.game)} opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-xl sm:rounded-2xl`} />
 
                 {/* Content */}
-                <div className="absolute inset-0 p-3 flex flex-col justify-between bg-gradient-to-t from-black/90 via-black/20 to-transparent">
+                <div className="absolute inset-0 p-2 sm:p-3 flex flex-col justify-between bg-gradient-to-t from-black/90 via-black/20 to-transparent">
                   {/* Quantity Badge - Top Left */}
                   {card.quantity && card.quantity > 1 && (
                     <motion.div 
-                      className="absolute top-2 left-2 h-6 w-6 rounded-full bg-amber-500/90 flex items-center justify-center"
+                      className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 h-5 w-5 sm:h-6 sm:w-6 rounded-full bg-amber-500/90 flex items-center justify-center"
                       whileHover={{ scale: 1.1 }}
                     >
-                      <span className="text-xs font-bold text-black">{card.quantity}</span>
+                      <span className="text-[10px] sm:text-xs font-bold text-black">{card.quantity}</span>
                     </motion.div>
                   )}
 
                   <div className="flex justify-end gap-1">
-                    <Badge variant={getBadgeVariant(card.game)} className="text-[10px] px-2 py-0">
+                    <Badge variant={getBadgeVariant(card.game)} className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0">
                       {card.game}
                     </Badge>
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-bold text-white leading-tight mb-1 group-hover:text-amber-400 transition-colors">{card.name}</h3>
+                    <h3 className="text-xs sm:text-sm font-bold text-white leading-tight mb-0.5 sm:mb-1 group-hover:text-amber-400 transition-colors line-clamp-2">{card.name}</h3>
                     <RarityBadge rarity={card.rarity} size="sm" />
                     
-                    {/* Copy ID Button */}
+                    {/* Copy ID Button - Hidden on very small screens */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         copyToClipboard(card.id);
                       }}
-                      className="mt-2 flex items-center gap-1 text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                      className="mt-1 sm:mt-2 hidden sm:flex items-center gap-1 text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
                       title="Copiar ID para Discord"
                     >
                       <IdCard className="h-3 w-3" />

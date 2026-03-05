@@ -1,7 +1,7 @@
 "use client";
 
 import { GlassPanel } from "./ui/GlassPanel";
-import { Package, TrendingUp, Library, Layers } from "lucide-react";
+import { Package, Library, Layers } from "lucide-react";
 import { motion } from "motion/react";
 
 type ViewType = 'dashboard' | 'collection' | 'packs' | 'catalog';
@@ -35,7 +35,7 @@ function FloatingCard({ delay, duration, x, y, rotate, color }: {
         repeatDelay: 2,
         ease: "easeInOut"
       }}
-      className={`absolute ${x} ${y} w-16 h-22 rounded-lg ${color} border border-white/10 shadow-lg pointer-events-none`}
+      className={`absolute ${x} ${y} w-16 h-22 rounded-lg ${color} border border-white/10 shadow-lg pointer-events-none hidden sm:block`}
       style={{ aspectRatio: '2.5/3.5' }}
     />
   );
@@ -70,7 +70,7 @@ function AnimatedOrb({ color, size, x, y, delay }: {
 
 export function Dashboard({ onNavigate }: DashboardProps) {
   return (
-    <div className="relative flex flex-col items-center justify-center h-full gap-8 overflow-hidden">
+    <div className="relative flex flex-col items-center justify-center h-full gap-6 sm:gap-8 overflow-hidden py-4">
       {/* Animated Background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Gradient orbs */}
@@ -79,7 +79,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         <AnimatedOrb color="bg-red-500" size={250} x="right-[20%]" y="top-[10%]" delay={2} />
         <AnimatedOrb color="bg-orange-500" size={200} x="left-[15%]" y="bottom-[20%]" delay={1.5} />
 
-        {/* Floating cards */}
+        {/* Floating cards - Hidden on mobile for performance */}
         <FloatingCard delay={0} duration={8} x="left-[5%]" y="top-[60%]" rotate={15} color="bg-gradient-to-br from-red-500/20 to-red-600/20" />
         <FloatingCard delay={1} duration={10} x="left-[15%]" y="top-[70%]" rotate={-20} color="bg-gradient-to-br from-amber-500/20 to-orange-500/20" />
         <FloatingCard delay={2} duration={9} x="right-[10%]" y="top-[50%]" rotate={25} color="bg-gradient-to-br from-red-600/20 to-pink-500/20" />
@@ -108,13 +108,13 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="text-center max-w-2xl relative z-10"
+        className="text-center max-w-2xl relative z-10 px-4"
       >
         <motion.h1
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-4xl md:text-5xl font-black text-white mb-4"
+          className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-3 sm:mb-4"
         >
           Street <span className="text-red-600">TCG</span> <span className="text-amber-500">Zone</span>
         </motion.h1>
@@ -122,70 +122,70 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="text-zinc-400 text-lg"
+          className="text-zinc-400 text-base sm:text-lg"
         >
           Colecciona e intercambia cartas en tu servidor de GTA V roleplay
         </motion.p>
       </motion.div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - Responsive Grid */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl relative z-10"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full max-w-4xl relative z-10 px-2 sm:px-0"
       >
         {/* Open Packs */}
         <GlassPanel
-          className="p-6 flex flex-col items-center gap-4 text-center group hover:bg-white/[0.04] transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg hover:shadow-red-600/10"
+          className="p-4 sm:p-6 flex flex-col items-center gap-3 sm:gap-4 text-center group hover:bg-white/[0.04] transition-all duration-300 cursor-pointer hover:scale-[1.02] sm:hover:scale-105 hover:shadow-lg hover:shadow-red-600/10 active:scale-[0.98] touch-manipulation"
           onClick={() => onNavigate?.("packs")}
         >
           <motion.div
             whileHover={{ rotate: [0, -10, 10, 0] }}
             transition={{ duration: 0.3 }}
-            className="h-16 w-16 rounded-2xl bg-red-600/10 border border-red-600/20 flex items-center justify-center group-hover:bg-red-600/20 transition-colors"
+            className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-red-600/10 border border-red-600/20 flex items-center justify-center group-hover:bg-red-600/20 transition-colors"
           >
-            <Package className="h-8 w-8 text-red-500" />
+            <Package className="h-7 w-7 sm:h-8 sm:w-8 text-red-500" />
           </motion.div>
           <div>
-            <h3 className="text-lg font-bold text-white mb-1">Abrir Sobres</h3>
-            <p className="text-sm text-zinc-500">Abre tus sobres de cartas</p>
+            <h3 className="text-base sm:text-lg font-bold text-white mb-1">Abrir Sobres</h3>
+            <p className="text-xs sm:text-sm text-zinc-500">Abre tus sobres de cartas</p>
           </div>
         </GlassPanel>
 
         {/* Collection */}
         <GlassPanel
-          className="p-6 flex flex-col items-center gap-4 text-center group hover:bg-white/[0.04] transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg hover:shadow-amber-600/10"
+          className="p-4 sm:p-6 flex flex-col items-center gap-3 sm:gap-4 text-center group hover:bg-white/[0.04] transition-all duration-300 cursor-pointer hover:scale-[1.02] sm:hover:scale-105 hover:shadow-lg hover:shadow-amber-600/10 active:scale-[0.98] touch-manipulation"
           onClick={() => onNavigate?.("collection")}
         >
           <motion.div
             whileHover={{ rotate: [0, -10, 10, 0] }}
             transition={{ duration: 0.3 }}
-            className="h-16 w-16 rounded-2xl bg-amber-600/10 border border-amber-600/20 flex items-center justify-center group-hover:bg-amber-600/20 transition-colors"
+            className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-amber-600/10 border border-amber-600/20 flex items-center justify-center group-hover:bg-amber-600/20 transition-colors"
           >
-            <Library className="h-8 w-8 text-amber-500" />
+            <Library className="h-7 w-7 sm:h-8 sm:w-8 text-amber-500" />
           </motion.div>
           <div>
-            <h3 className="text-lg font-bold text-white mb-1">Colección</h3>
-            <p className="text-sm text-zinc-500">Ver tus cartas</p>
+            <h3 className="text-base sm:text-lg font-bold text-white mb-1">Colección</h3>
+            <p className="text-xs sm:text-sm text-zinc-500">Ver tus cartas</p>
           </div>
         </GlassPanel>
 
         {/* Stats */}
         <GlassPanel
-          className="p-6 flex flex-col items-center gap-4 text-center group hover:bg-white/[0.04] transition-all duration-300 cursor-pointer hover:scale-105 hover:shadow-lg hover:shadow-zinc-600/10"
+          className="p-4 sm:p-6 flex flex-col items-center gap-3 sm:gap-4 text-center group hover:bg-white/[0.04] transition-all duration-300 cursor-pointer hover:scale-[1.02] sm:hover:scale-105 hover:shadow-lg hover:shadow-zinc-600/10 active:scale-[0.98] touch-manipulation sm:col-span-2 lg:col-span-1"
           onClick={() => onNavigate?.("catalog")}
         >
           <motion.div
             whileHover={{ rotate: [0, -10, 10, 0] }}
             transition={{ duration: 0.3 }}
-            className="h-16 w-16 rounded-2xl bg-zinc-600/10 border border-zinc-600/20 flex items-center justify-center group-hover:bg-zinc-600/20 transition-colors"
+            className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-zinc-600/10 border border-zinc-600/20 flex items-center justify-center group-hover:bg-zinc-600/20 transition-colors"
           >
-            <Layers className="h-8 w-8 text-zinc-400" />
+            <Layers className="h-7 w-7 sm:h-8 sm:w-8 text-zinc-400" />
           </motion.div>
           <div>
-            <h3 className="text-lg font-bold text-white mb-1">Catálogo</h3>
-            <p className="text-sm text-zinc-500">Ver sobres disponibles</p>
+            <h3 className="text-base sm:text-lg font-bold text-white mb-1">Catálogo</h3>
+            <p className="text-xs sm:text-sm text-zinc-500">Ver sobres disponibles</p>
           </div>
         </GlassPanel>
       </motion.div>
@@ -195,7 +195,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.6 }}
-        className="text-center text-zinc-500 text-sm max-w-md relative z-10"
+        className="text-center text-zinc-500 text-xs sm:text-sm max-w-md relative z-10 px-4"
       >
         Pide sobres a un administrador para empezar
       </motion.p>
