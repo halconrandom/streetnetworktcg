@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X, ImageOff } from "lucide-react";
 import { RarityBadge } from "./RarityBadge";
@@ -42,6 +43,14 @@ function CardImage({ src, alt }: { src: string | null | undefined; alt: string }
 }
 
 export function CardModal({ card, isOpen, onClose }: CardModalProps) {
+  // Track if we're mounted (for portal)
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -92,7 +101,8 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
   // Get image URL from either format
   const imageUrl = card?.imageUrl || card?.image_url || null;
 
-  return (
+  // Modal content
+  const modalContent = (
     <AnimatePresence>
       {isOpen && card && (
         <>
@@ -195,4 +205,9 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
       )}
     </AnimatePresence>
   );
+
+  // Render using portal to escape container stacking context
+  if (!mounted) return null;
+  
+  return createPortal(modalContent, document.body);
 }
