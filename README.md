@@ -289,7 +289,9 @@ Este proyecto es propiedad de Street Network. Todos los derechos reservados.
 
 ## 📞 Soporte
 
-Para soporte o preguntas, contacta al equipo de desarrollo o visita el servidor de Discord de Street Network.
+Para soporte o preguntas, contacta al equipo de desarrollo o únete al servidor de Discord de Street Network:
+
+[![Discord](https://img.shields.io/badge/Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white)](http://discord.com/invite/4qNVmk464p)
 
 ---
 
@@ -308,6 +310,6 @@ Para soporte o preguntas, contacta al equipo de desarrollo o visita el servidor 
 
 **Desarrollado con ❤️ para la comunidad de Street Network**
 
-[🌐 Sitio Web](https://tcgzone.tmstreet.network) • [📧 Contacto](mailto:support@street.network)
+[🌐 Sitio Web](https://tcgzone.tmstreet.network) • [💬 Discord](http://discord.com/invite/4qNVmk464p) • [📧 Contacto](mailto:support@street.network)
 
 </div>
