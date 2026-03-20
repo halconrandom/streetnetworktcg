@@ -310,6 +310,6 @@ Para soporte o preguntas, contacta al equipo de desarrollo o únete al servidor 
 
 **Desarrollado con ❤️ para la comunidad de Street Network**
 
-[🌐 Sitio Web](https://tcgzone.tmstreet.network) • [💬 Discord](http://discord.com/invite/4qNVmk464p) • [📧 Contacto](mailto:support@street.network)
+[🌐 Sitio Web](https://tcgzone.tmstreet.network) • [💬 Discord](http://discord.com/invite/4qNVmk464p) • [📧 Contacto](mailto:isaac.streetnetwork@gmail.com)
 
 </div>
